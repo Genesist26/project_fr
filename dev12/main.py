@@ -3,6 +3,7 @@ import os
 import threading
 import time
 from urllib.request import urlopen
+from uuid import getnode as get_mac
 
 import cv2
 
@@ -38,9 +39,11 @@ class AzureCallerThread(threading.Thread):
     def run(self):
         print("AzureCallerThread:\tSTART")
         global azure_flag
+        global enable_flag
+
         i = 0
         while self.running:
-            if azure_flag:
+            if enable_flag and azure_flag:
                 lock.acquire()
                 azure_flag = False
                 lock.release()
@@ -56,30 +59,31 @@ class HaarcascadThread(threading.Thread):
 
     def run(self):
         print("HaarcascadThread:\tSTART")
-        time.sleep(1)
         global frame_buffer
         global azure_flag
+        global enable_flag
         last = 0
         i = 0
 
         while self.running:
-            frame = frame_buffer
+            if enable_flag:
+                frame = frame_buffer
 
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-            current = len(faces)
+                faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+                current = len(faces)
 
-            if current == 0:
-                last = current
-            elif current != last:
-                lock.acquire()
-                azure_flag = True
-                lock.release()
+                if current == 0:
+                    last = current
+                elif current != last:
+                    lock.acquire()
+                    azure_flag = True
+                    lock.release()
 
-                print("HaarcascadThread found[" + str(i) + ", " + str(current) + "]")
-                last = current
-                i = i + 1
+                    print("HaarcascadThread found[" + str(i) + ", " + str(current) + "]")
+                    last = current
+                    i = i + 1
 
     def stop(self):
         self.running = False
@@ -104,24 +108,62 @@ class RepeatTimerThread(threading.Thread):
 
     def run(self):
         print("RepeatTimerThread:\tSTART")
+        global enable_flag
+        global cam_id
+        global key_SN
+        global config_SN
 
         i = 0
         while self.running:
-            # res = urlopen("http://"+server_ip+":"+server_port+"/code2")
-            res = urlopen("http://"+server_ip+":"+server_port+"/code2")
 
-            res_string = json.loads((res.read()).decode("utf-8"))
-            j_res = json.loads(res_string)
+            ## test part
+            try:
+                res = urlopen(
+                    "http://13.67.93.241:8080/status?mac=" + cam_id + "&key_SN=" + key_SN + "&config_SN=" + config_SN)
+                j_result = json.load(res)
+                status = j_result['status']
 
-            status = j_res['status']
+                if status == 'enable':
+                    print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
+                    enable_flag = True
 
-            if status == 'enable':
-                print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
-            elif status == 'disable':
+                elif status == 'disable':
+                    print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
+                    enable_flag = False
 
-                print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
-            else:
-                print("RepeatTimerThread [" + str(i) + "]:\tUNKNOWN")
+            except:
+                enable_flag = False
+                print("urlopen:\t ERROR")
+
+            ## genesis part
+            # res = urlopen("http://13.67.93.241:8080/status")
+            # j_result = json.load(res)
+            # status = j_result['status']
+            #
+            # if status == 'enable':
+            #     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
+            #     enable_flag = True
+            #
+            # elif status == 'disable':
+            #     print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
+            #     enable_flag = False
+
+            ## nalina part
+            # res = urlopen("http://" + server_ip + ":" + server_port + "/code2")
+            # res_string = json.loads((res.read()).decode("utf-8"))
+            # print(res_string)
+            # j_res = json.loads(res_string)
+            #
+            #
+            # print(j_res)
+            #
+            # status = j_res['status']
+            #
+            # if status == 'disable':
+            #     print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
+            #     pass
+            # elif status == 'enable':
+            #     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
 
             i = i + 1
             time.sleep(5)
@@ -131,18 +173,54 @@ class RepeatTimerThread(threading.Thread):
 
 
 def load_config_file():
+    global cam_id
+    global key_SN
+    global key
+    global config_SN
+    global group_name
+    global group_id
+
     filename = "D:/home/pi/project/project_fr/config.json"
 
-    if os.path.exists(filename):
-        print("exists")
+    msg = {
+        "cam_id": hex(get_mac()),
+        "cam_name": "none",
+        "owner": "none",
+        "key_SN": "none",
+        "config_SN": "none",
+        "location": "location1",
+        "group_name": "groupName1",
+        "group_id": "groupId1",
+        "key": "none"
+    }
+    if not os.path.exists(filename):
+        print("config:\tNOT EXISTS [CREATING]")
+
+        with open(filename, 'w') as fp:
+            json.dump(msg, fp)
+
+        print("config:\tCREATING COMPLETED")
+
+    else:
+        print("config:\tEXISTS")
         with open(filename) as data_file:
             data = json.load(data_file)
-            print(data)
-    else:
-        print("not exists")
+
+            cam_id = data["cam_id"]
+            key_SN = data["key_SN"]
+            key = data["key"]
+            config_SN = data["config_SN"]
+            group_name = data["group_name"]
+            group_id = data["group_id"]
 
 
-load_config_file()
+### var
+cam_id = None
+key_SN = None
+key = None
+config_SN = None
+group_name = None
+group_id = None
 
 lock = threading.Lock()
 
@@ -150,6 +228,9 @@ enable_flag = False
 azure_flag = False
 
 frame_buffer = None
+
+### initial funtion
+load_config_file()
 
 camera_reader_thread = CameraReaderThread(0)
 azure_caller_thread = AzureCallerThread()
