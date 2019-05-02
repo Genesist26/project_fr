@@ -257,12 +257,15 @@ def load_config_file():
             data = json.load(data_file)
 
             cam_id = data["cam_id"]
+            cam_name = data["cam_name"]
+            owner = data["owner"]
             key_SN = data["key_SN"]
-            key = data["key"]
             config_SN = data["config_SN"]
+            key = data["key"]
             group_name = data["group_name"]
             group_id = data["group_id"]
-
+            location = data["location"]
+            
             for k in data:
                 print(k + ":\t" + data[k])
 
