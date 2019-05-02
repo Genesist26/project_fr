@@ -62,6 +62,7 @@ class HaarcascadThread(threading.Thread):
         global frame_buffer
         global azure_flag
         global enable_flag
+
         last = 0
         i = 0
 
@@ -109,44 +110,62 @@ class RepeatTimerThread(threading.Thread):
     def run(self):
         print("RepeatTimerThread:\tSTART")
         global enable_flag
+
         global cam_id
+        global cam_name
+        global owner
         global key_SN
         global config_SN
+        global key
+        global group_name
+        global group_id
+        global location
 
         i = 0
         while self.running:
 
             ## test part
             try:
-                res = urlopen(
-                    "http://13.67.93.241:8080/status?mac=" + cam_id + "&key_SN=" + key_SN + "&config_SN=" + config_SN)
+                res = urlopen("http://13.67.93.241:8080/status?mac=" + cam_id + "&key_SN=" + key_SN + "&config_SN=" + config_SN)
+                # res = urlopen("http://" + server_ip + ":" + server_port + "/status?mac=" + cam_id + "&key_SN=" + key_SN + "&config_SN=" + config_SN)
+
                 j_result = json.load(res)
                 status = j_result['status']
 
-                if status == 'enable':
+                if status == 'disable':
+                    print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
+                    enable_flag = False
+
+                elif status == 'enable':
                     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
                     enable_flag = True
 
-                elif status == 'disable':
-                    print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
-                    enable_flag = False
+                    update_flag = False
+
+                    if "key_SN" in j_result:  # new key available
+                        update_flag = True
+                        key_SN = j_result["key_SN"]
+                        key = j_result["key"]
+                        print("New key_SN:\t", key_SN)
+                        print("New key:\t", key)
+
+                    if "config_SN" in j_result:  # new config available
+                        update_flag = True
+                        config_SN = j_result["config_SN"]
+                        if "group_name" in j_result['group_name']:  # handle new group
+                            group_name = j_result['group_name']
+                            group_id = j_result['group_id']
+                            location = j_result['location']
+
+                    if update_flag:
+                        print("config_file:\t UPDATING")
+                        update_config_file()
+
+
 
             except:
                 enable_flag = False
                 print("urlopen:\t ERROR")
-
-            ## genesis part
-            # res = urlopen("http://13.67.93.241:8080/status")
-            # j_result = json.load(res)
-            # status = j_result['status']
-            #
-            # if status == 'enable':
-            #     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
-            #     enable_flag = True
-            #
-            # elif status == 'disable':
-            #     print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
-            #     enable_flag = False
 
             ## nalina part
             # res = urlopen("http://" + server_ip + ":" + server_port + "/code2")
@@ -172,26 +191,57 @@ class RepeatTimerThread(threading.Thread):
         self.running = False
 
 
-def load_config_file():
+def update_config_file():
     global cam_id
+    global cam_name
+    global owner
     global key_SN
-    global key
     global config_SN
+    global key
     global group_name
     global group_id
+    global location
 
     filename = "D:/home/pi/project/project_fr/config.json"
 
+    msg = {
+        "cam_id": hex(get_mac()),
+        "cam_name": cam_name,
+        "owner": owner,
+        "key_SN": key_SN,
+        "config_SN": config_SN,
+        "key": key,
+        "group_name": group_name,
+        "group_id": group_id,
+        "location": location
+    }
+
+    with open(filename, 'w') as fp:
+        json.dump(msg, fp)
+
+
+def load_config_file():
+    global cam_id
+    global cam_name
+    global owner
+    global key_SN
+    global config_SN
+    global key
+    global group_name
+    global group_id
+    global location
+
+    filename = "D:/home/pi/project/project_fr/config.json"
     msg = {
         "cam_id": hex(get_mac()),
         "cam_name": "none",
         "owner": "none",
         "key_SN": "none",
         "config_SN": "none",
-        "location": "location1",
-        "group_name": "groupName1",
-        "group_id": "groupId1",
-        "key": "none"
+        "key": "none",
+        "group_name": "none",
+        "group_id": "none",
+        "location": "none"
     }
     if not os.path.exists(filename):
         print("config:\tNOT EXISTS [CREATING]")
@@ -213,14 +263,20 @@ def load_config_file():
             group_name = data["group_name"]
             group_id = data["group_id"]
 
+            for k in data:
+                print(k + ":\t" + data[k])
+
 
 ### var
 cam_id = None
+cam_name = None
+owner = None
 key_SN = None
-key = None
 config_SN = None
+key = None
 group_name = None
 group_id = None
+location = None
 
 lock = threading.Lock()
 
