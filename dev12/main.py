@@ -108,7 +108,7 @@ class RepeatTimerThread(threading.Thread):
         i = 0
         while self.running:
             # res = urlopen("http://"+server_ip+":"+server_port+"/code2")
-            res = urlopen("http://13.76.191.11:8080/code2")
+            res = urlopen("http://"+server_ip+":"+server_port+"/code2")
 
             res_string = json.loads((res.read()).decode("utf-8"))
             j_res = json.loads(res_string)
@@ -131,7 +131,7 @@ class RepeatTimerThread(threading.Thread):
 
 
 def load_config_file():
-    filename = "d:/home/pi/project/config.json"
+    filename = "D:/home/pi/project/project_fr/config.json"
 
     if os.path.exists(filename):
         print("exists")
@@ -161,7 +161,7 @@ camera_reader_thread.start()
 haarcascad_thread.start()
 azure_caller_thread.start()
 # flask_server_thread.start()
-# repeat_timer_thread.start()
+repeat_timer_thread.start()
 
 # time.sleep(2)
 # while True:
