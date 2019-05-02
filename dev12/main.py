@@ -1,24 +1,15 @@
+import json
+import os
 import threading
 import time
 from urllib.request import urlopen
+
 import cv2
-import json
+
+server_ip = "13.76.191.11"
+server_port = "8080"
 
 face_cascade = cv2.CascadeClassifier('C:/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
-
-
-class MyThread(threading.Thread):
-    running = True
-
-    def run(self):
-        x = 1
-        while self.running:
-            time.sleep(1)
-            print(x)
-            x = x + 1
-
-    def stop(self):
-        self.running = False
 
 
 class CameraReaderThread(threading.Thread):
@@ -116,11 +107,13 @@ class RepeatTimerThread(threading.Thread):
 
         i = 0
         while self.running:
-            response = urlopen("http://13.67.93.241:8080/status")
-            j_result = json.load(response)
+            # res = urlopen("http://"+server_ip+":"+server_port+"/code2")
+            res = urlopen("http://13.76.191.11:8080/code2")
 
-            print(j_result)
-            status = j_result[0]['status']
+            res_string = json.loads((res.read()).decode("utf-8"))
+            j_res = json.loads(res_string)
+
+            status = j_res['status']
 
             if status == 'enable':
                 print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
@@ -129,6 +122,7 @@ class RepeatTimerThread(threading.Thread):
                 print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
             else:
                 print("RepeatTimerThread [" + str(i) + "]:\tUNKNOWN")
+
             i = i + 1
             time.sleep(5)
 
@@ -136,11 +130,19 @@ class RepeatTimerThread(threading.Thread):
         self.running = False
 
 
-# th = MyThread()
-# # th.daemon = True
-# th.start()
-#
-# th.stop()
+def load_config_file():
+    filename = "d:/home/pi/project/config.json"
+
+    if os.path.exists(filename):
+        print("exists")
+        with open(filename) as data_file:
+            data = json.load(data_file)
+            print(data)
+    else:
+        print("not exists")
+
+
+load_config_file()
 
 lock = threading.Lock()
 
@@ -159,7 +161,7 @@ camera_reader_thread.start()
 haarcascad_thread.start()
 azure_caller_thread.start()
 # flask_server_thread.start()
-repeat_timer_thread.start()
+# repeat_timer_thread.start()
 
 # time.sleep(2)
 # while True:
