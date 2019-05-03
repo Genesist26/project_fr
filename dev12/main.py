@@ -7,12 +7,6 @@ from uuid import getnode as get_mac
 
 import cv2
 
-server_ip = "13.76.191.11"
-server_port = "8080"
-
-face_cascade = cv2.CascadeClassifier('C:/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
-
-
 class CameraReaderThread(threading.Thread):
     running = True
 
@@ -124,13 +118,13 @@ class RepeatTimerThread(threading.Thread):
         i = 0
         while self.running:
 
-            ## test part
             try:
-                res = urlopen("http://13.67.93.241:8080/status?mac=" + cam_id + "&key_SN=" + key_SN + "&config_SN=" + config_SN)
-                # res = urlopen("http://" + server_ip + ":" + server_port + "/status?mac=" + cam_id + "&key_SN=" + key_SN + "&config_SN=" + config_SN)
+                res = urlopen("http://" + server_ip + ":" + server_port + "/code")
+                res_string = json.loads((res.read()).decode("utf-8"))
+                print(res_string)
+                j_res = json.loads(res_string)
 
-                j_result = json.load(res)
-                status = j_result['status']
+                status = j_res['status']
 
                 if status == 'disable':
                     print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
@@ -142,47 +136,33 @@ class RepeatTimerThread(threading.Thread):
 
                     update_flag = False
 
-                    if "key_SN" in j_result:  # new key available
+                    if "key_SN" in j_res:  # new key available
                         update_flag = True
-                        key_SN = j_result["key_SN"]
-                        key = j_result["key"]
+                        enable_flag = False
+
+                        key_SN = j_res["key_SN"]
+                        key = j_res["key"]
                         print("New key_SN:\t", key_SN)
                         print("New key:\t", key)
 
-                    if "config_SN" in j_result:  # new config available
+                    if "config_SN" in j_res:  # new config available
                         update_flag = True
-                        config_SN = j_result["config_SN"]
-                        if "group_name" in j_result['group_name']:  # handle new group
-                            group_name = j_result['group_name']
-                            group_id = j_result['group_id']
-                            location = j_result['location']
+                        enable_flag = False
+
+                        config_SN = j_res["config_SN"]
+                        if "group_name" in j_res['group_name']:  # handle new group
+                            group_name = j_res['group_name']
+                            group_id = j_res['group_id']
+                            location = j_res['location']
 
                     if update_flag:
                         print("config_file:\t UPDATING")
                         update_config_file()
 
 
-
             except:
                 enable_flag = False
                 print("urlopen:\t ERROR")
-
-            ## nalina part
-            # res = urlopen("http://" + server_ip + ":" + server_port + "/code2")
-            # res_string = json.loads((res.read()).decode("utf-8"))
-            # print(res_string)
-            # j_res = json.loads(res_string)
-            #
-            #
-            # print(j_res)
-            #
-            # status = j_res['status']
-            #
-            # if status == 'disable':
-            #     print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
-            #     pass
-            # elif status == 'enable':
-            #     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
 
             i = i + 1
             time.sleep(5)
@@ -192,6 +172,8 @@ class RepeatTimerThread(threading.Thread):
 
 
 def update_config_file():
+    global enable_flag
+
     global cam_id
     global cam_name
     global owner
@@ -202,7 +184,13 @@ def update_config_file():
     global group_id
     global location
 
-    filename = "D:/home/pi/project/project_fr/config.json"
+
+    global debug_on_window
+
+    if debug_on_window:
+        filename = "D:/home/pi/project/project_fr/config.json"        # windows
+    else:
+        filename = "/home/pi/project/config.json"      # pi
 
     msg = {
         "cam_id": hex(get_mac()),
@@ -219,6 +207,8 @@ def update_config_file():
     with open(filename, 'w') as fp:
         json.dump(msg, fp)
 
+    enable_flag = False
+
 
 def load_config_file():
     global cam_id
@@ -231,7 +221,12 @@ def load_config_file():
     global group_id
     global location
 
-    filename = "D:/home/pi/project/project_fr/config.json"
+    global debug_on_window
+
+    if debug_on_window:
+        filename = "D:/home/pi/project/project_fr/config.json"  # windows
+    else:
+        filename = "/home/pi/project/config.json"  # pi
     msg = {
         "cam_id": hex(get_mac()),
         "cam_name": "none",
@@ -265,7 +260,7 @@ def load_config_file():
             group_name = data["group_name"]
             group_id = data["group_id"]
             location = data["location"]
-            
+
             for k in data:
                 print(k + ":\t" + data[k])
 
@@ -280,6 +275,20 @@ key = None
 group_name = None
 group_id = None
 location = None
+
+debug_on_window = False
+
+
+server_ip = "13.76.191.11"
+server_port = "8080"
+
+if debug_on_window:
+    face_cascade = cv2.CascadeClassifier('C:/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
+else:
+    face_cascade = cv2.CascadeClassifier('/home/pi/opencv-3.4.3/data/haarcascades/haarcascade_frontalface_default.xml')
+
+
+
 
 lock = threading.Lock()
 
