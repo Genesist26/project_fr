@@ -395,7 +395,18 @@ def load_person_list():
 
 
 def update_person_list():
-    azure_caller_thread.sync_person()
+    azure_caller_thread.sync_person()  # debug only
+
+    global person_list
+    global key
+    global group_id
+
+    if debug_on_window:
+        person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
+    else:
+        person_list_filepath = "/home/pi/project/person_list.json"  # pi
+
+    save_msg_to_json(person_list, person_list_filepath)
 
 
 def pp_json_string(tupple_msg):
