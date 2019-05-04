@@ -4,8 +4,8 @@ import threading
 import time
 from urllib.request import urlopen
 from uuid import getnode as get_mac
-from pprint import pprint
 
+import cognitive_face as CF
 import cv2
 
 
@@ -31,11 +31,19 @@ class CameraReaderThread(threading.Thread):
 
 class AzureCallerThread(threading.Thread):
     running = True
+    BASE_URL = 'https://southeastasia.api.cognitive.microsoft.com/face/v1.0'
 
     def run(self):
         print("AzureCallerThread:\tSTART")
+
         global azure_flag
         global enable_flag
+        global key
+        global person_list
+        global image_path
+
+        CF.Key.set(key)
+        CF.BaseUrl.set(self.BASE_URL)
 
         i = 0
         while self.running:
@@ -44,11 +52,60 @@ class AzureCallerThread(threading.Thread):
                 azure_flag = False
                 lock.release()
 
+                # api
+                azure_detect_list = CF.face.detect(image_path)
+                face_ids = [d['faceId'] for d in azure_detect_list]
+
+                azure_detect_number = len(face_ids)
+
+                print("azure_detect_number: " + str(azure_detect_number))
+
+                if azure_detect_number:
+                    azure_identified_list = CF.face.identify(face_ids, group_id)
+
+                    azure_known_number = azure_detect_number
+                    known_counter = 0
+
+                    print("\tazure_known_person:")
+
+                    for i in range(azure_detect_number):
+                        candidate = azure_identified_list[i]['candidates']
+                        if candidate:  # check empty list
+                            candidate_personId = candidate[0]['personId']
+                            candidate_confidence = candidate[0]['confidence']
+
+                            for person in person_list:
+                                if candidate_personId in person['personId']:
+                                    known_counter = known_counter + 1
+                                    print("\t\t" + str(known_counter) + ": [" + person['name'] + "," + str(
+                                        candidate_confidence) + "]")
+                                    azure_known_number -= 1
+
+                    if azure_known_number:
+                        print("\tazure_unknown_person: " + str(azure_known_number))
+
                 print("AzureCallerThread [" + str(i) + "]")
                 i = i + 1
 
     def stop(self):
         self.running = False
+
+    def sync_person(self):
+        global person_list
+        global key
+        global group_id
+
+        CF.Key.set(key)
+        CF.BaseUrl.set(self.BASE_URL)
+
+        person_list = CF.person.lists(group_id)
+
+        if debug_on_window:
+            person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
+        else:
+            person_list_filepath = "/home/pi/project/person_list.json"  # pi
+
+        save_msg_to_json(person_list, person_list_filepath)
 
 
 class HaarcascadThread(threading.Thread):
@@ -59,22 +116,28 @@ class HaarcascadThread(threading.Thread):
         global frame_buffer
         global azure_flag
         global enable_flag
-
+        global image_path
+        global immge_name
+        img_name = "test4"
         last = 0
         i = 0
+
+        if debug_on_window:
+            image_path = "D:/home/pi/project/project_fr/image/" + img_name + ".jpg"
+        else:
+            image_path = "/home/pi/project" + img_name + ".jpg"
 
         while self.running:
             if enable_flag:
                 frame = frame_buffer
 
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-                faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+                faces = face_cascade.detectMultiScale(frame, 1.3, 5)
                 current = len(faces)
 
                 if current == 0:
                     last = current
                 elif current != last:
+                    cv2.imwrite(image_path, frame)
                     lock.acquire()
                     azure_flag = True
                     lock.release()
@@ -178,14 +241,14 @@ class RepeatTimerThread(threading.Thread):
 
                 if update_flag:
                     update_config()
+                    azure_caller_thread.sync_person()
                     enable_flag = True
-
             except:
                 enable_flag = False
                 print("urlopen:\t ERROR")
 
             i = i + 1
-            time.sleep(5)
+            time.sleep(10)
 
     def stop(self):
         self.running = False
@@ -223,14 +286,12 @@ def update_config():
         "location": location
     }
 
-    print("------------Updating config:\tSTART------------")
-    pp_json_string(msg)
-    print("------------Updating config:\tFINISH------------")
-
     with open(filename, 'w') as fp:
         json.dump(msg, fp)
 
-    enable_flag = False
+    print("------------Updating config:\tSTART------------")
+    pp_json_string(msg)
+    print("------------Updating config:\tFINISH------------")
 
 
 def load_config():
@@ -301,13 +362,53 @@ def load_config():
     # pretty print json string
     pp_json_string(msg)
 
+
+def load_person_list():
+    global person_list
+    print("call => load_person_list")
+    # if debug_on_window:
+    #     person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
+    # else:
+    #     person_list_filepath = "/home/pi/project/person_list.json"  # pi
+    #
+    # msg = {
+    #     "cam_id": hex(get_mac()),
+    #     "cam_name": cam_name,
+    #     "owner": owner,
+    #     "key_sn": key_sn,
+    #     "config_sn": config_sn,
+    #     "key": key,
+    #     "group_name": group_name,
+    #     "group_id": group_id,
+    #     "location": location
+    # }
+    #
+    #
+    # if not os.path.exists(person_list_filepath):
+    #     with open(person_list_filepath, 'w') as fp:
+    #         json.dump(msg, fp)
+    # else:
+    #     with open(person_list_filepath) as data_file:
+    #         person_list = json.load(data_file)
+
+
 def pp_json_string(tupple_msg):
     temp = json.dumps(tupple_msg)
     temp2 = json.loads(temp)
     print(json.dumps(temp2, sort_keys=True, indent=4))
 
 
-### var
+def save_msg_to_json(msg, filename):
+    if not os.path.exists(filename):
+        print("save_msg_to_json:\tNOT EXISTS [CREATING]")
+
+        with open(filename, 'w') as fp:
+            json.dump(msg, fp)
+
+
+# azure_var
+
+### global_var
 cam_id = None
 cam_name = None
 owner = None
@@ -317,13 +418,18 @@ key = None
 group_name = None
 group_id = None
 location = None
+person_list = None
+image_path = None
 
+# debug_var
 debug_on_window = True
 debug_flag = False
 
+# server_var
 server_ip = "13.76.191.11"
 server_port = "8080"
 
+# harcas_var
 if debug_on_window:
     face_cascade = cv2.CascadeClassifier('C:/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
 else:
@@ -338,6 +444,8 @@ frame_buffer = None
 
 ### initial funtion
 load_config()
+# load_person_list()
+
 
 camera_reader_thread = CameraReaderThread(0)
 azure_caller_thread = AzureCallerThread()
@@ -348,8 +456,8 @@ repeat_timer_thread = RepeatTimerThread()
 camera_reader_thread.start()
 haarcascad_thread.start()
 azure_caller_thread.start()
-# flask_server_thread.start()
 repeat_timer_thread.start()
+# flask_server_thread.start()
 
 # time.sleep(2)
 # while True:
