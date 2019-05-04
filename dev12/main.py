@@ -184,6 +184,8 @@ class RepeatTimerThread(threading.Thread):
         global group_name
         global group_id
         global location
+        global person_list
+        global person_list_sn
 
         i = 0
         while self.running:
@@ -215,7 +217,7 @@ class RepeatTimerThread(threading.Thread):
                     enable_flag = True
                     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
 
-                    if "key_sn" in j_res or "config_sn" in j_res:
+                    if "key_sn" in j_res or "config_sn" in j_res or "person_list_sn" in j_res:
                         enable_flag = False
                         update_flag = True
 
@@ -239,9 +241,16 @@ class RepeatTimerThread(threading.Thread):
                                 location = j_res['location']
                                 print("New location:\t", location)
 
+                        if "person_list_sn" in j_res:  # new config available
+                            person_list_sn = j_res['person_list_sn']
+                            person_list = j_res['person_list']
+                            print("New person_list_sn:\t", person_list_sn)
+                            update_person_list()
+
+
                 if update_flag:
                     update_config()
-                    azure_caller_thread.sync_person()
+                    update_person_list()
                     enable_flag = True
             except:
                 enable_flag = False
@@ -266,6 +275,8 @@ def update_config():
     global group_name
     global group_id
     global location
+    global person_list_sn
+    global person_list
 
     global debug_on_window
 
@@ -280,10 +291,12 @@ def update_config():
         "owner": owner,
         "key_sn": key_sn,
         "config_sn": config_sn,
+        "person_list_sn": person_list_sn,
         "key": key,
         "group_name": group_name,
         "group_id": group_id,
-        "location": location
+        "location": location,
+        "person_list": person_list
     }
 
     with open(filename, 'w') as fp:
@@ -317,10 +330,12 @@ def load_config():
         "owner": "none",
         "key_sn": "none",
         "config_sn": "none",
+        "person_list_sn": "none",
         "key": "none",
         "group_name": "none",
         "group_id": "none",
-        "location": "none"
+        "location": "none",
+        "person_list": "none"
     }
 
     if not os.path.exists(filename):
@@ -365,31 +380,21 @@ def load_config():
 
 def load_person_list():
     global person_list
-    print("call => load_person_list")
-    # if debug_on_window:
-    #     person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
-    # else:
-    #     person_list_filepath = "/home/pi/project/person_list.json"  # pi
-    #
-    # msg = {
-    #     "cam_id": hex(get_mac()),
-    #     "cam_name": cam_name,
-    #     "owner": owner,
-    #     "key_sn": key_sn,
-    #     "config_sn": config_sn,
-    #     "key": key,
-    #     "group_name": group_name,
-    #     "group_id": group_id,
-    #     "location": location
-    # }
-    #
-    #
-    # if not os.path.exists(person_list_filepath):
-    #     with open(person_list_filepath, 'w') as fp:
-    #         json.dump(msg, fp)
-    # else:
-    #     with open(person_list_filepath) as data_file:
-    #         person_list = json.load(data_file)
+
+    if debug_on_window:
+        person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
+    else:
+        person_list_filepath = "/home/pi/project/person_list.json"  # pi
+
+    if os.path.exists(person_list_filepath):
+        with open(person_list_filepath) as data_file:
+            person_list = json.load(data_file)
+
+
+
+
+def update_person_list():
+    azure_caller_thread.sync_person()
 
 
 def pp_json_string(tupple_msg):
@@ -419,6 +424,7 @@ group_name = None
 group_id = None
 location = None
 person_list = None
+person_list_sn = None
 image_path = None
 
 # debug_var
@@ -444,10 +450,10 @@ frame_buffer = None
 
 ### initial funtion
 load_config()
-# load_person_list()
-
+load_person_list()
 
 camera_reader_thread = CameraReaderThread(0)
+azure_caller_thread = AzureCallerThread()
 azure_caller_thread = AzureCallerThread()
 haarcascad_thread = HaarcascadThread()
 flask_server_thread = FlaskServerThread()
