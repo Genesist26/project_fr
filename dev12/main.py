@@ -250,7 +250,7 @@ class RepeatTimerThread(threading.Thread):
 
                 if update_flag:
                     update_config()
-                    update_person_list()
+                    update_person_list()        # debug only (wait for server side ready)
                     enable_flag = True
             except:
                 enable_flag = False
@@ -423,7 +423,7 @@ key = None
 group_name = None
 group_id = None
 location = None
-person_list = None
+person_list = []
 person_list_sn = None
 image_path = None
 
