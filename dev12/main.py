@@ -4,6 +4,7 @@ import threading
 import time
 from urllib.request import urlopen
 from uuid import getnode as get_mac
+from pprint import pprint
 
 import cv2
 
@@ -81,6 +82,8 @@ class HaarcascadThread(threading.Thread):
                     print("HaarcascadThread found[" + str(i) + ", " + str(current) + "]")
                     last = current
                     i = i + 1
+
+                time.sleep(0.3)
 
     def stop(self):
         self.running = False
@@ -174,7 +177,6 @@ class RepeatTimerThread(threading.Thread):
                                 print("New location:\t", location)
 
                 if update_flag:
-                    print("config_file:\tUPDATING")
                     update_config()
                     enable_flag = True
 
@@ -222,7 +224,7 @@ def update_config():
     }
 
     print("------------Updating config:\tSTART------------")
-    print(msg)
+    pp_json_string(msg)
     print("------------Updating config:\tFINISH------------")
 
     with open(filename, 'w') as fp:
@@ -259,6 +261,7 @@ def load_config():
         "group_id": "none",
         "location": "none"
     }
+
     if not os.path.exists(filename):
         print("config:\tNOT EXISTS [CREATING]")
 
@@ -283,8 +286,25 @@ def load_config():
             group_id = data["group_id"]
             location = data["location"]
 
-            for k in data:
-                print(k + ":\t" + data[k])
+        msg = {
+            "cam_id": hex(get_mac()),
+            "cam_name": cam_name,
+            "owner": owner,
+            "key_sn": key_sn,
+            "config_sn": config_sn,
+            "key": key,
+            "group_name": group_name,
+            "group_id": group_id,
+            "location": location
+        }
+
+    # pretty print json string
+    pp_json_string(msg)
+
+def pp_json_string(tupple_msg):
+    temp = json.dumps(tupple_msg)
+    temp2 = json.loads(temp)
+    print(json.dumps(temp2, sort_keys=True, indent=4))
 
 
 ### var
@@ -331,21 +351,21 @@ azure_caller_thread.start()
 # flask_server_thread.start()
 repeat_timer_thread.start()
 
-time.sleep(2)
-while True:
-    frame = frame_buffer
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    for (x, y, w, h) in faces:
-        img = cv2.rectangle(gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        roi_gray = gray[y:y + h, x:x + w]
-        roi_color = gray[y:y + h, x:x + w]
-
-    cv2.imshow('frame', gray)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# When everything done, release the capture
-camera_reader_thread.stop()
-cv2.destroyAllWindows()
+# time.sleep(2)
+# while True:
+#     frame = frame_buffer
+#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#
+#     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+#     for (x, y, w, h) in faces:
+#         img = cv2.rectangle(gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
+#         roi_gray = gray[y:y + h, x:x + w]
+#         roi_color = gray[y:y + h, x:x + w]
+#
+#     cv2.imshow('frame', gray)
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#         break
+#
+# # When everything done, release the capture
+# camera_reader_thread.stop()
+# cv2.destroyAllWindows()
