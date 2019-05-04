@@ -7,6 +7,7 @@ from uuid import getnode as get_mac
 
 import cv2
 
+
 class CameraReaderThread(threading.Thread):
     running = True
 
@@ -41,6 +42,7 @@ class AzureCallerThread(threading.Thread):
                 lock.acquire()
                 azure_flag = False
                 lock.release()
+
                 print("AzureCallerThread [" + str(i) + "]")
                 i = i + 1
 
@@ -103,13 +105,15 @@ class RepeatTimerThread(threading.Thread):
 
     def run(self):
         print("RepeatTimerThread:\tSTART")
+        global debug_flag
+
         global enable_flag
 
         global cam_id
         global cam_name
         global owner
-        global key_SN
-        global config_SN
+        global key_sn
+        global config_sn
         global key
         global group_name
         global group_id
@@ -119,12 +123,23 @@ class RepeatTimerThread(threading.Thread):
         while self.running:
 
             try:
-                res = urlopen("http://" + server_ip + ":" + server_port + "/code")
+                # res = urlopen("http://" + server_ip + ":" + server_port + "/code")
+                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&config_sn=" + config_sn + ""
+
+                if debug_flag:
+                    print("cam_id:\t" + cam_id)
+                    print("key_sn:\t" + key_sn)
+                    print("config_sn:\t" + config_sn)
+                    print("url_str:\t" + url_str)
+
+                res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
                 print(res_string)
                 j_res = json.loads(res_string)
 
                 status = j_res['status']
+
+                update_flag = False
 
                 if status == 'disable':
                     print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
@@ -132,33 +147,35 @@ class RepeatTimerThread(threading.Thread):
 
                 elif status == 'enable':
                     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
+
+                    if "key_sn" in j_res or "config_sn" in j_res:
+                        enable_flag = False
+                        update_flag = True
+
+                        if "key_sn" in j_res:  # new key available
+                            key_sn = j_res["key_sn"]
+                            key = j_res["key"]
+                            print("New key_sn:\t", key_sn)
+                            print("New key:\t", key)
+
+                        if "config_sn" in j_res:  # new config available
+                            config_sn = j_res["config_sn"]
+                            print("New config_sn:\t", config_sn)
+
+                            if "group_name" in j_res:  # handle new group
+                                group_name = j_res['group_name']
+                                group_id = j_res['group_id']
+                                print("New group_name:\t", group_name)
+                                print("New group_id:\t", group_id)
+
+                            if "location" in j_res:  # handle new group
+                                location = j_res['location']
+                                print("New location:\t", location)
+
+                if update_flag:
+                    print("config_file:\tUPDATING")
+                    update_config()
                     enable_flag = True
-
-                    update_flag = False
-
-                    if "key_SN" in j_res:  # new key available
-                        update_flag = True
-                        enable_flag = False
-
-                        key_SN = j_res["key_SN"]
-                        key = j_res["key"]
-                        print("New key_SN:\t", key_SN)
-                        print("New key:\t", key)
-
-                    if "config_SN" in j_res:  # new config available
-                        update_flag = True
-                        enable_flag = False
-
-                        config_SN = j_res["config_SN"]
-                        if "group_name" in j_res['group_name']:  # handle new group
-                            group_name = j_res['group_name']
-                            group_id = j_res['group_id']
-                            location = j_res['location']
-
-                    if update_flag:
-                        print("config_file:\t UPDATING")
-                        update_config_file()
-
 
             except:
                 enable_flag = False
@@ -171,38 +188,41 @@ class RepeatTimerThread(threading.Thread):
         self.running = False
 
 
-def update_config_file():
+def update_config():
     global enable_flag
 
     global cam_id
     global cam_name
     global owner
-    global key_SN
-    global config_SN
+    global key_sn
+    global config_sn
     global key
     global group_name
     global group_id
     global location
 
-
     global debug_on_window
 
     if debug_on_window:
-        filename = "D:/home/pi/project/project_fr/config.json"        # windows
+        filename = "D:/home/pi/project/project_fr/config.json"  # windows
     else:
-        filename = "/home/pi/project/config.json"      # pi
+        filename = "/home/pi/project/config.json"  # pi
 
     msg = {
         "cam_id": hex(get_mac()),
         "cam_name": cam_name,
         "owner": owner,
-        "key_SN": key_SN,
-        "config_SN": config_SN,
+        "key_sn": key_sn,
+        "config_sn": config_sn,
         "key": key,
         "group_name": group_name,
         "group_id": group_id,
         "location": location
     }
+
+    print("------------Updating config:\tSTART------------")
+    print(msg)
+    print("------------Updating config:\tFINISH------------")
 
     with open(filename, 'w') as fp:
         json.dump(msg, fp)
@@ -210,12 +230,12 @@ def update_config_file():
     enable_flag = False
 
 
-def load_config_file():
+def load_config():
     global cam_id
     global cam_name
     global owner
-    global key_SN
-    global config_SN
+    global key_sn
+    global config_sn
     global key
     global group_name
     global group_id
@@ -231,8 +251,8 @@ def load_config_file():
         "cam_id": hex(get_mac()),
         "cam_name": "none",
         "owner": "none",
-        "key_SN": "none",
-        "config_SN": "none",
+        "key_sn": "none",
+        "config_sn": "none",
         "key": "none",
         "group_name": "none",
         "group_id": "none",
@@ -245,6 +265,7 @@ def load_config_file():
             json.dump(msg, fp)
 
         print("config:\tCREATING COMPLETED")
+        return load_config()
 
     else:
         print("config:\tEXISTS")
@@ -254,8 +275,8 @@ def load_config_file():
             cam_id = data["cam_id"]
             cam_name = data["cam_name"]
             owner = data["owner"]
-            key_SN = data["key_SN"]
-            config_SN = data["config_SN"]
+            key_sn = data["key_sn"]
+            config_sn = data["config_sn"]
             key = data["key"]
             group_name = data["group_name"]
             group_id = data["group_id"]
@@ -269,15 +290,15 @@ def load_config_file():
 cam_id = None
 cam_name = None
 owner = None
-key_SN = None
-config_SN = None
+key_sn = None
+config_sn = None
 key = None
 group_name = None
 group_id = None
 location = None
 
-debug_on_window = False
-
+debug_on_window = True
+debug_flag = False
 
 server_ip = "13.76.191.11"
 server_port = "8080"
@@ -287,9 +308,6 @@ if debug_on_window:
 else:
     face_cascade = cv2.CascadeClassifier('/home/pi/opencv-3.4.3/data/haarcascades/haarcascade_frontalface_default.xml')
 
-
-
-
 lock = threading.Lock()
 
 enable_flag = False
@@ -298,7 +316,7 @@ azure_flag = False
 frame_buffer = None
 
 ### initial funtion
-load_config_file()
+load_config()
 
 camera_reader_thread = CameraReaderThread(0)
 azure_caller_thread = AzureCallerThread()
