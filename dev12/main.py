@@ -146,6 +146,7 @@ class RepeatTimerThread(threading.Thread):
                     enable_flag = False
 
                 elif status == 'enable':
+                    enable_flag = True
                     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
 
                     if "key_sn" in j_res or "config_sn" in j_res:
@@ -330,21 +331,21 @@ azure_caller_thread.start()
 # flask_server_thread.start()
 repeat_timer_thread.start()
 
-# time.sleep(2)
-# while True:
-#     frame = frame_buffer
-#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#
-#     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-#     for (x, y, w, h) in faces:
-#         img = cv2.rectangle(gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
-#         roi_gray = gray[y:y + h, x:x + w]
-#         roi_color = gray[y:y + h, x:x + w]
-#
-#     cv2.imshow('frame', gray)
-#     if cv2.waitKey(1) & 0xFF == ord('q'):
-#         break
-#
-# # When everything done, release the capture
-# camera_reader_thread.stop()
-# cv2.destroyAllWindows()
+time.sleep(2)
+while True:
+    frame = frame_buffer
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    for (x, y, w, h) in faces:
+        img = cv2.rectangle(gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        roi_gray = gray[y:y + h, x:x + w]
+        roi_color = gray[y:y + h, x:x + w]
+
+    cv2.imshow('frame', gray)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# When everything done, release the capture
+camera_reader_thread.stop()
+cv2.destroyAllWindows()
