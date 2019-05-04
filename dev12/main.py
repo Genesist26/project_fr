@@ -193,6 +193,8 @@ class RepeatTimerThread(threading.Thread):
             try:
                 # res = urlopen("http://" + server_ip + ":" + server_port + "/code")
                 url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&config_sn=" + config_sn + ""
+                # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&config_sn=" + config_sn + "&person_list_sn" + person_list_sn + ""
+                print(url_str)
 
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
@@ -247,10 +249,9 @@ class RepeatTimerThread(threading.Thread):
                             print("New person_list_sn:\t", person_list_sn)
                             update_person_list()
 
-
                 if update_flag:
                     update_config()
-                    update_person_list()        # debug only (wait for server side ready)
+                    update_person_list()  # debug only (wait for server side ready)
                     enable_flag = True
             except:
                 enable_flag = False
@@ -296,7 +297,6 @@ def update_config():
         "group_name": group_name,
         "group_id": group_id,
         "location": location,
-        "person_list": person_list
     }
 
     with open(filename, 'w') as fp:
@@ -317,6 +317,7 @@ def load_config():
     global group_name
     global group_id
     global location
+    global person_list_sn
 
     global debug_on_window
 
@@ -335,7 +336,6 @@ def load_config():
         "group_name": "none",
         "group_id": "none",
         "location": "none",
-        "person_list": "none"
     }
 
     if not os.path.exists(filename):
@@ -357,6 +357,7 @@ def load_config():
             owner = data["owner"]
             key_sn = data["key_sn"]
             config_sn = data["config_sn"]
+            person_list_sn = data["person_list_sn"]
             key = data["key"]
             group_name = data["group_name"]
             group_id = data["group_id"]
@@ -371,7 +372,9 @@ def load_config():
             "key": key,
             "group_name": group_name,
             "group_id": group_id,
-            "location": location
+            "location": location,
+            "person_list_sn": person_list_sn,
+
         }
 
     # pretty print json string
@@ -389,8 +392,6 @@ def load_person_list():
     if os.path.exists(person_list_filepath):
         with open(person_list_filepath) as data_file:
             person_list = json.load(data_file)
-
-
 
 
 def update_person_list():
