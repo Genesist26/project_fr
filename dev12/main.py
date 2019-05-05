@@ -419,8 +419,11 @@ def save_msg_to_json(msg, filename):
     if not os.path.exists(filename):
         print("save_msg_to_json:\tNOT EXISTS [CREATING]")
 
+
         with open(filename, 'w') as fp:
             json.dump(msg, fp)
+
+        print("save_msg_to_json:\tCREATING COMPLETED")
 
 
 # azure_var
