@@ -1,10 +1,50 @@
-import cognitive_face as CF
+from subprocess import check_output
+# from PyAccessPoint import pyaccesspoint
+from flask import Flask, request, render_template
+import time
+import socket
 
-KEY = 'ce5f9a111c7a4a26b8fd0f88ab2fe47a'  # Replace with a valid subscription key (keeping the quotes in place).
-CF.Key.set(KEY)
+# access_point = pyaccesspoint.AccessPoint()
+# access_point.stop()
+# access_point.start()
+#
 
-BASE_URL = 'https://southeastasia.api.cognitive.microsoft.com/face/v1.0'  # Replace with your regional Base URL
-CF.BaseUrl.set(BASE_URL)
+debug_on_windows = True
 
-person_list = CF.person.lists('myteams')
-print(person_list)
+if debug_on_windows:
+    hostname = socket.gethostname()
+    ip_addr = socket.gethostbyname(hostname)
+else:
+    ip_addr = check_output(['hostname', '-I']).decode('ascii')
+
+
+print("ip => ", ip_addr)
+app = Flask(__name__)
+
+
+
+@app.route('/hello')
+def hello():
+    return "Hello World!"
+
+@app.route('/')
+def index():
+    """Video streaming home page."""
+    return render_template('index.html')
+
+@app.route('/connect', methods=['POST'])
+def connect():
+    # ssid = request.args.get('ssid')
+    # password = request.args.get('password')
+
+    ssid = request.form['ssid']
+    password = request.form['password']
+    print("/connect")
+    print("\tssid => ", ssid)
+    print("\tpassword => ", password)
+
+    return "Try to connect to SSID = "+ssid+""
+
+
+if __name__ == '__main__':
+    app.run(host=ip_addr)
