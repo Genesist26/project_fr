@@ -1,13 +1,12 @@
 import json
 import os
 import socket
-import sys
 import threading
 import time
 from subprocess import check_output
 from urllib.request import urlopen
 from uuid import getnode as get_mac
-
+import re
 import cognitive_face as CF
 import cv2
 # from PyAccessPoint import pyaccesspoint
@@ -190,8 +189,8 @@ class FlaskServerThread(threading.Thread):
 
             ssid = request.form['ssid']
             password = request.form['ssidpsk']
-            owner = ['owner']
-            cam_name = ['cam_name']
+            owner = request.form['owner']
+            cam_name = request.form['cam_name']
             print("/connect")
             print("\tssid => ", ssid)
             print("\tpassword => ", password)
@@ -202,8 +201,8 @@ class FlaskServerThread(threading.Thread):
             cam_name = password
 
             update_config()
-            reboot()
-            threading.Timer(1.0, reboot).start()     # will reboot
+            set_new_password(password)
+            # reboot()
 
             return shutdown("Try to connect to SSID: " + ssid + "")
 
@@ -503,10 +502,11 @@ def reboot():
     if debug_on_window:
         print("debug on windows => cannot reboot pi")
         exit()
+        # threading.Timer(1.0).start()  # will reboot
     else:
         print("reboot pi")
         os.system('sudo reboot')
-
+        # threading.Timer(1.0).start()  # will reboot
 
     # python = sys.executable
     # os.execl(python, python, *sys.argv)
@@ -536,6 +536,33 @@ def check_internet():
     except:
         print("No internet connection")
         return False
+
+
+def set_new_password(new_password):
+    print("set_new_password()")
+
+    global debug_on_window
+
+    if debug_on_window:
+        filepath = "D:/home/pi/project/project_fr/wpa_supplicant.conf"
+    else:
+        filepath = "/etc/wpa_supplicant/wpa_supplicant.conf"
+
+
+    print("filepath exists")
+    with open(filepath, 'r') as f:
+        in_file = f.read()
+        f.close()
+
+    print("in_file => ", in_file)
+
+    out_file = re.sub(r'psk=".*"', 'psk=' + '"' + new_password + '"', in_file)
+
+    with open(filepath, 'w') as f:
+        f.write(out_file)
+        f.close()
+
+    print("out_file => ", out_file)
 
 
 # azure_var
@@ -596,7 +623,7 @@ mode
 
 # test toggle state
 if check_internet():
-    repeat_timer_thread.start()
+
 
     if owner == 'none':
         print("should boot mode 3 (LIKE MODE 1)")
@@ -613,6 +640,7 @@ if check_internet():
         camera_reader_thread.start()
         haarcascad_thread.start()
         azure_caller_thread.start()
+        repeat_timer_thread.start()
 
 
 else:
