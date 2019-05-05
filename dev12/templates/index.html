@@ -3,13 +3,18 @@
     <title>Video Streaming Demonstration</title>
 </head>
 <body>
-<h1>Index page</h1>
+<h1>Register page</h1>
 
 <form action="/connect" method="post">
     ssid:<br>
     <input type="text" name="ssid" required><br>
-    password:<br>
-    <input type="password" name="password" minlength="8" required><br>
+    ssid password:<br>
+    <input type="password" name="ssidpsk" minlength="8" required><br>
+    username:<br>
+    <input type="text" name="owner" required><br>
+    cam_name:<br>
+    <input type="text" name="cam_name" required><br>
+
     <input type="submit" value="Submit" >
 
 </form>

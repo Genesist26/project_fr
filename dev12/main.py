@@ -1,12 +1,17 @@
 import json
 import os
+import socket
+import sys
 import threading
 import time
+from subprocess import check_output
 from urllib.request import urlopen
 from uuid import getnode as get_mac
 
 import cognitive_face as CF
 import cv2
+# from PyAccessPoint import pyaccesspoint
+from flask import Flask, request, render_template, Response
 
 
 class CameraReaderThread(threading.Thread):
@@ -156,11 +161,63 @@ class FlaskServerThread(threading.Thread):
     running = True
 
     def run(self):
+        global debug_on_window
+
+        if debug_on_window:
+            hostname = socket.gethostname()
+            ip_addr = socket.gethostbyname(hostname)
+        else:
+            ip_addr = check_output(['hostname', '-I']).decode('ascii')
+
         print("FlaskServerThread:\tSTART")
-        i = 0
-        while self.running:
-            print("FlaskServerThread [" + str(i) + "]")
-            i = i + 1
+        app = Flask(__name__)
+
+        @app.route('/hello')
+        def hello():
+            return "Hello World!"
+
+        @app.route('/')
+        def index():
+            """Video streaming home page."""
+            return render_template('index.html')
+
+        @app.route('/connect', methods=['POST'])
+        def connect():
+            global owner
+            global cam_name
+            # ssid = request.args.get('ssid')
+            # password = request.args.get('password')
+
+            ssid = request.form['ssid']
+            password = request.form['ssidpsk']
+            owner = ['owner']
+            cam_name = ['cam_name']
+            print("/connect")
+            print("\tssid => ", ssid)
+            print("\tpassword => ", password)
+            print("\towner => ", owner)
+            print("\tcam_name => ", cam_name)
+
+            owner = ssid
+            cam_name = password
+
+            update_config()
+            reboot()
+            threading.Timer(1.0, reboot).start()     # will reboot
+
+            return shutdown("Try to connect to SSID: " + ssid + "")
+
+        @app.route('/q')
+        def q():
+            return shutdown()
+
+        def shutdown(msg):
+            shutdown_hook = request.environ.get('werkzeug.server.shutdown')
+            if shutdown_hook is not None:
+                shutdown_hook()
+            return Response(msg, mimetype='text/plain')
+
+        app.run(host=ip_addr, debug=False)
 
     def stop(self):
         self.running = False
@@ -419,11 +476,66 @@ def save_msg_to_json(msg, filename):
     if not os.path.exists(filename):
         print("save_msg_to_json:\tNOT EXISTS [CREATING]")
 
-
         with open(filename, 'w') as fp:
             json.dump(msg, fp)
 
         print("save_msg_to_json:\tCREATING COMPLETED")
+
+
+def setup_ap():
+    print("setup_ap")
+    access_point = pyaccesspoint.AccessPoint()
+    access_point.stop()
+    access_point.start()
+
+
+def save_register_info():
+    print("save_register_info()")
+
+    if not debug_on_window:
+        print("shoud execute main function again")
+
+
+def reboot():
+    print("reboot:\t EXECUTING")
+    global debug_on_window
+
+    if debug_on_window:
+        print("debug on windows => cannot reboot pi")
+        exit()
+    else:
+        print("reboot pi")
+        os.system('sudo reboot')
+
+
+    # python = sys.executable
+    # os.execl(python, python, *sys.argv)
+
+
+def boot_mode(mode):
+    print("Boot on Mode:\t", str(mode))
+
+    if mode == 1:
+        print("debugonwindow =>", debug_on_window)
+        if not debug_on_window:
+            setup_ap()
+        flask_server_thread.start()
+    elif mode == 2:
+        repeat_timer_thread.start()
+        camera_reader_thread.start()
+        haarcascad_thread.start()
+        azure_caller_thread.start()
+
+
+def check_internet():
+    url_str = "http://google.com"
+    try:
+        urlopen(url_str)
+        print("Has internet connection")
+        return True
+    except:
+        print("No internet connection")
+        return False
 
 
 # azure_var
@@ -460,7 +572,6 @@ lock = threading.Lock()
 
 enable_flag = False
 azure_flag = False
-
 frame_buffer = None
 
 ### initial funtion
@@ -469,16 +580,53 @@ load_person_list()
 
 camera_reader_thread = CameraReaderThread(0)
 azure_caller_thread = AzureCallerThread()
-azure_caller_thread = AzureCallerThread()
 haarcascad_thread = HaarcascadThread()
 flask_server_thread = FlaskServerThread()
 repeat_timer_thread = RepeatTimerThread()
 
-camera_reader_thread.start()
-haarcascad_thread.start()
-azure_caller_thread.start()
-repeat_timer_thread.start()
-# flask_server_thread.start()
+'''
+mode
+1   no own
+
+'''
+# if owner == "none":
+#     boot_mode(1)
+# else:
+#     boot_mode(2)
+
+# test toggle state
+if check_internet():
+    repeat_timer_thread.start()
+
+    if owner == 'none':
+        print("should boot mode 3 (LIKE MODE 1)")
+
+        if debug_on_window:
+            print(">>> debug on windows cannot setup wifi AP <<<")
+            flask_server_thread.start()
+        else:
+            setup_ap()
+            flask_server_thread.start()
+
+    else:
+        print("should boot mode 4")
+        camera_reader_thread.start()
+        haarcascad_thread.start()
+        azure_caller_thread.start()
+
+
+else:
+    if owner == 'none':
+        print("should boot mode 1")
+
+        if debug_on_window:
+            print(">>> debug on windows cannot setup wifi AP <<<")
+            flask_server_thread.start()
+        else:
+            setup_ap()
+            flask_server_thread.start()
+    else:
+        print("should boot mode 2")
 
 # time.sleep(2)
 # while True:
