@@ -49,7 +49,7 @@ class AzureCallerThread(threading.Thread):
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
-
+        print("key => ", key)
         i = 0
         while self.running:
             if enable_flag and azure_flag:
@@ -94,23 +94,6 @@ class AzureCallerThread(threading.Thread):
 
     def stop(self):
         self.running = False
-
-    def sync_person(self):
-        global person_list
-        global key
-        global group_id
-
-        CF.Key.set(key)
-        CF.BaseUrl.set(self.BASE_URL)
-
-        person_list = CF.person.lists(group_id)
-
-        if debug_on_window:
-            person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
-        else:
-            person_list_filepath = "/home/pi/project/person_list.json"  # pi
-
-        save_msg_to_json(person_list, person_list_filepath)
 
 
 class HaarcascadThread(threading.Thread):
@@ -185,8 +168,6 @@ class FlaskServerThread(threading.Thread):
         def connect():
             global owner
             global cam_name
-            # ssid = request.args.get('ssid')
-            # password = request.args.get('password')
 
             ssid = request.form['ssid']
             password = request.form['ssidpsk']
@@ -203,7 +184,6 @@ class FlaskServerThread(threading.Thread):
 
             update_config()
             set_new_ssid(ssid, password)
-            reboot()
 
             return shutdown("Try to connect to SSID: " + ssid + "")
 
@@ -238,7 +218,7 @@ class RepeatTimerThread(threading.Thread):
         global cam_name
         global owner
         global key_sn
-        global config_sn
+        global group_sn
         global key
         global group_name
         global group_id
@@ -251,14 +231,15 @@ class RepeatTimerThread(threading.Thread):
 
             try:
                 # res = urlopen("http://" + server_ip + ":" + server_port + "/code")
-                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&config_sn=" + config_sn + ""
-                # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&config_sn=" + config_sn + "&person_list_sn" + person_list_sn + ""
+                # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + "&person_list_sn" + person_list_sn + ""
+                # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
+                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
                 print(url_str)
 
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
                     print("key_sn:\t" + key_sn)
-                    print("config_sn:\t" + config_sn)
+                    print("group_sn:\t" + group_sn)
                     print("url_str:\t" + url_str)
 
                 res = urlopen(url_str)
@@ -278,7 +259,7 @@ class RepeatTimerThread(threading.Thread):
                     enable_flag = True
                     print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
 
-                    if "key_sn" in j_res or "config_sn" in j_res or "person_list_sn" in j_res:
+                    if "key_sn" in j_res or "group_sn" in j_res or "person_list_sn" in j_res:
                         enable_flag = False
                         update_flag = True
 
@@ -288,9 +269,9 @@ class RepeatTimerThread(threading.Thread):
                             print("New key_sn:\t", key_sn)
                             print("New key:\t", key)
 
-                        if "config_sn" in j_res:  # new config available
-                            config_sn = j_res["config_sn"]
-                            print("New config_sn:\t", config_sn)
+                        if "group_sn" in j_res:  # new config available
+                            group_sn = j_res["group_sn"]
+                            print("New group_sn:\t", group_sn)
 
                             if "group_name" in j_res:  # handle new group
                                 group_name = j_res['group_name']
@@ -301,12 +282,13 @@ class RepeatTimerThread(threading.Thread):
                             if "location" in j_res:  # handle new group
                                 location = j_res['location']
                                 print("New location:\t", location)
+                                update_person_list()
 
-                        if "person_list_sn" in j_res:  # new config available
-                            person_list_sn = j_res['person_list_sn']
-                            person_list = j_res['person_list']
-                            print("New person_list_sn:\t", person_list_sn)
-                            update_person_list()
+                        # if "person_list_sn" in j_res:  # new config available
+                        #     person_list_sn = j_res['person_list_sn']
+                        #     person_list = j_res['person_list']
+                        #     print("New person_list_sn:\t", person_list_sn)
+                        #     update_person_list()
 
                 if update_flag:
                     update_config()
@@ -330,7 +312,7 @@ def update_config():
     global cam_name
     global owner
     global key_sn
-    global config_sn
+    global group_sn
     global key
     global group_name
     global group_id
@@ -350,7 +332,7 @@ def update_config():
         "cam_name": cam_name,
         "owner": owner,
         "key_sn": key_sn,
-        "config_sn": config_sn,
+        "group_sn": group_sn,
         "person_list_sn": person_list_sn,
         "key": key,
         "group_name": group_name,
@@ -360,6 +342,7 @@ def update_config():
 
     with open(filename, 'w') as fp:
         json.dump(msg, fp)
+        fp.close()
 
     print("------------Updating config:\tSTART------------")
     pp_json_string(msg)
@@ -371,7 +354,7 @@ def load_config():
     global cam_name
     global owner
     global key_sn
-    global config_sn
+    global group_sn
     global key
     global group_name
     global group_id
@@ -389,7 +372,7 @@ def load_config():
         "cam_name": "none",
         "owner": "none",
         "key_sn": "none",
-        "config_sn": "none",
+        "group_sn": "none",
         "person_list_sn": "none",
         "key": "none",
         "group_name": "none",
@@ -402,6 +385,7 @@ def load_config():
 
         with open(filename, 'w') as fp:
             json.dump(msg, fp)
+            fp.close()
 
         print("config:\tCREATING COMPLETED")
         return load_config()
@@ -410,12 +394,13 @@ def load_config():
         print("config:\tEXISTS")
         with open(filename) as data_file:
             data = json.load(data_file)
+            data_file.close()
 
             cam_id = data["cam_id"]
             cam_name = data["cam_name"]
             owner = data["owner"]
             key_sn = data["key_sn"]
-            config_sn = data["config_sn"]
+            group_sn = data["group_sn"]
             person_list_sn = data["person_list_sn"]
             key = data["key"]
             group_name = data["group_name"]
@@ -427,7 +412,7 @@ def load_config():
             "cam_name": cam_name,
             "owner": owner,
             "key_sn": key_sn,
-            "config_sn": config_sn,
+            "group_sn": group_sn,
             "key": key,
             "group_name": group_name,
             "group_id": group_id,
@@ -451,19 +436,23 @@ def load_person_list():
     if os.path.exists(person_list_filepath):
         with open(person_list_filepath) as data_file:
             person_list = json.load(data_file)
+            data_file.close()
 
 
 def update_person_list():
-    azure_caller_thread.sync_person()  # debug only
-
     global person_list
-    global key
-    global group_id
+    global group_sn
 
     if debug_on_window:
         person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
     else:
         person_list_filepath = "/home/pi/project/person_list.json"  # pi
+
+    server_person_url = "http://13.76.191.11:8080/code/index.php/api/all_person/?cam_id=0x1e9cafa9b4&group_sn=" + group_sn + ""
+    res = urlopen(server_person_url)
+    res_string = json.loads((res.read()).decode("utf-8"))
+    person_list = json.loads(res_string)
+    print("sync_person => ", person_list)
 
     save_msg_to_json(person_list, person_list_filepath)
 
@@ -480,6 +469,7 @@ def save_msg_to_json(msg, filename):
 
         with open(filename, 'w') as fp:
             json.dump(msg, fp)
+            fp.close()
 
         print("save_msg_to_json:\tCREATING COMPLETED")
 
@@ -546,21 +536,20 @@ def set_new_ssid(new_ssid, new_password):
     else:
         filepath = "/etc/wpa_supplicant/wpa_supplicant.conf"
 
-    print("filepath exists")
     with open(filepath, 'r') as f:
         in_file = f.read()
         f.close()
 
-    print("in_file => ", in_file)
+    if not re.search(r'ssid', in_file):
+        msg = "\nnetwork={\n\tssid=\"" + new_ssid + "\"\n\tpsk=\"" + new_password + "\"\n\tkey_mgmt=WPA-PSK\n}"
+        in_file = in_file + msg
 
-    out_file = re.sub(r'ssid=".*"', 'psk=' + '"' + new_ssid + '"', in_file)
+    out_file = re.sub(r'ssid=".*"', 'ssid=' + '"' + new_ssid + '"', in_file)
     out_file = re.sub(r'psk=".*"', 'psk=' + '"' + new_password + '"', out_file)
 
     with open(filepath, 'w') as f:
         f.write(out_file)
         f.close()
-
-    print("out_file => ", out_file)
 
 
 # azure_var
@@ -570,7 +559,7 @@ cam_id = None
 cam_name = None
 owner = None
 key_sn = None
-config_sn = None
+group_sn = None
 key = None
 group_name = None
 group_id = None
@@ -620,6 +609,8 @@ mode
 #     boot_mode(2)
 
 # test toggle state
+
+print("check internet key => ", key)
 if check_internet():
 
     if owner == 'none':
@@ -627,19 +618,18 @@ if check_internet():
 
         if debug_on_window:
             print(">>> debug on windows cannot setup wifi AP <<<")
-            flask_server_thread.start()
         else:
             setup_ap()
-            flask_server_thread.start()
 
+        flask_server_thread.start()
     else:
         print("should boot mode 4")
+        repeat_timer_thread.start()
+        time.sleep(5)  # wait for setup key
+
         camera_reader_thread.start()
         haarcascad_thread.start()
         azure_caller_thread.start()
-        repeat_timer_thread.start()
-
-
 else:
     if owner == 'none':
         print("should boot mode 1")
