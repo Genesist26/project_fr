@@ -10,7 +10,6 @@ from uuid import getnode as get_mac
 
 import cognitive_face as CF
 import cv2
-# from PyAccessPoint import pyaccesspoint
 from flask import Flask, request, render_template, Response
 
 
@@ -183,7 +182,6 @@ class FlaskServerThread(threading.Thread):
 
             update_config()
             set_new_ssid(ssid, password)
-
             return shutdown("Try to connect to SSID: " + ssid + "")
 
         @app.route('/q')
@@ -191,11 +189,12 @@ class FlaskServerThread(threading.Thread):
             return shutdown()
 
         def shutdown(msg):
+            global reboot_flag
             shutdown_hook = request.environ.get('werkzeug.server.shutdown')
             if shutdown_hook is not None:
                 shutdown_hook()
 
-            threading.Timer(3.0, reboot).start()
+            reboot_flag = True
             return Response(msg, mimetype='text/plain')
 
         app.run(host=ip_addr, debug=False)
@@ -451,7 +450,6 @@ def update_person_list():
     res = urlopen(server_person_url)
     res_string = json.loads((res.read()).decode("utf-8"))
     person_list = json.loads(res_string)
-    print("sync_person => ", person_list)
 
     save_msg_to_json(person_list, person_list_filepath)
 
@@ -474,10 +472,13 @@ def save_msg_to_json(msg, filename):
 
 
 def setup_ap():
-    print("setup_ap")
     access_point = pyaccesspoint.AccessPoint()
     access_point.stop()
     access_point.start()
+    if access_point.is_running():
+        print("setup AP:\tOK")
+    else:
+        print("setup AP:\tFAIL")
 
 
 def save_register_info():
@@ -490,13 +491,14 @@ def save_register_info():
 def reboot():
     print("reboot:\t EXECUTING")
     global debug_on_window
+    time.sleep(2)
 
     if debug_on_window:
         print("debug on windows => cannot reboot pi")
         exit()
     else:
         print("reboot pi")
-        os.system('sudo reboot')
+        os.system('reboot')
 
 
 def boot_mode(mode):
@@ -515,18 +517,19 @@ def boot_mode(mode):
 
 
 def check_internet():
+    print("checking internet connection:", end='')
     url_str = "http://google.com"
     try:
         urlopen(url_str)
-        print("internet:\tOK")
+        print("\tOK")
         return True
     except:
-        print("internet:\tFAIL")
+        print("\tFAIL")
         return False
 
 
 def set_new_ssid(new_ssid, new_password):
-    print("set_new_password()")
+
 
     global debug_on_window
 
@@ -550,6 +553,8 @@ def set_new_ssid(new_ssid, new_password):
         f.write(out_file)
         f.close()
 
+    print("set new ssid:\tOK")
+
 
 # azure_var
 
@@ -568,8 +573,23 @@ person_list_sn = None
 image_path = None
 
 # debug_var
+
 debug_on_window = True
 debug_flag = False
+
+
+process = os.popen('hostname')
+proc_res = process.read()
+process.close()
+
+if "pi" in proc_res:
+    debug_on_window = False
+    from PyAccessPoint import pyaccesspoint
+else:
+    debug_on_window = True
+
+print("debug_on_window => ", debug_on_window)
+
 
 # server_var
 server_ip = "13.76.191.11"
@@ -586,6 +606,7 @@ lock = threading.Lock()
 enable_flag = False
 azure_flag = False
 frame_buffer = None
+reboot_flag = False
 
 ### initial funtion
 load_config()
@@ -597,11 +618,10 @@ haarcascad_thread = HaarcascadThread()
 flask_server_thread = FlaskServerThread()
 repeat_timer_thread = RepeatTimerThread()
 
-print("check internet key => ", key)
 if check_internet():
 
     if owner == 'none':
-        print("should boot mode 3 (LIKE MODE 1)")
+        print("BOOT MODE:\t3 (LIKE MODE 1)")
 
         if debug_on_window:
             print(">>> debug on windows cannot setup wifi AP <<<")
@@ -609,8 +629,14 @@ if check_internet():
             setup_ap()
 
         flask_server_thread.start()
+        while True:
+            if reboot_flag:
+                os.system('reboot')
+            else:
+                print("running")
+                time.sleep(3)
     else:
-        print("should boot mode 4")
+        print("BOOT MODE:\t4")
         repeat_timer_thread.start()
         time.sleep(5)  # wait for setup key
 
@@ -619,7 +645,7 @@ if check_internet():
         azure_caller_thread.start()
 else:
     if owner == 'none':
-        print("should boot mode 1")
+        print("BOOT MODE:\t1")
 
         if debug_on_window:
             print(">>> debug on windows cannot setup wifi AP <<<")
@@ -627,8 +653,14 @@ else:
         else:
             setup_ap()
             flask_server_thread.start()
+            while True:
+                if reboot_flag:
+                    os.system('reboot')
+                else:
+                    print("running")
+                    time.sleep(3)
     else:
-        print("should boot mode 2")
+        print("BOOT MODE:\t2")
 
 # time.sleep(2)
 # while True:
