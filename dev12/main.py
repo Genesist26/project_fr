@@ -1,12 +1,13 @@
 import json
 import os
+import re
 import socket
 import threading
 import time
 from subprocess import check_output
 from urllib.request import urlopen
 from uuid import getnode as get_mac
-import re
+
 import cognitive_face as CF
 import cv2
 # from PyAccessPoint import pyaccesspoint
@@ -201,8 +202,8 @@ class FlaskServerThread(threading.Thread):
             cam_name = password
 
             update_config()
-            set_new_password(password)
-            # reboot()
+            set_new_ssid(ssid, password)
+            reboot()
 
             return shutdown("Try to connect to SSID: " + ssid + "")
 
@@ -214,6 +215,8 @@ class FlaskServerThread(threading.Thread):
             shutdown_hook = request.environ.get('werkzeug.server.shutdown')
             if shutdown_hook is not None:
                 shutdown_hook()
+
+            threading.Timer(3.0, reboot).start()
             return Response(msg, mimetype='text/plain')
 
         app.run(host=ip_addr, debug=False)
@@ -502,14 +505,9 @@ def reboot():
     if debug_on_window:
         print("debug on windows => cannot reboot pi")
         exit()
-        # threading.Timer(1.0).start()  # will reboot
     else:
         print("reboot pi")
         os.system('sudo reboot')
-        # threading.Timer(1.0).start()  # will reboot
-
-    # python = sys.executable
-    # os.execl(python, python, *sys.argv)
 
 
 def boot_mode(mode):
@@ -538,7 +536,7 @@ def check_internet():
         return False
 
 
-def set_new_password(new_password):
+def set_new_ssid(new_ssid, new_password):
     print("set_new_password()")
 
     global debug_on_window
@@ -548,7 +546,6 @@ def set_new_password(new_password):
     else:
         filepath = "/etc/wpa_supplicant/wpa_supplicant.conf"
 
-
     print("filepath exists")
     with open(filepath, 'r') as f:
         in_file = f.read()
@@ -556,7 +553,8 @@ def set_new_password(new_password):
 
     print("in_file => ", in_file)
 
-    out_file = re.sub(r'psk=".*"', 'psk=' + '"' + new_password + '"', in_file)
+    out_file = re.sub(r'ssid=".*"', 'psk=' + '"' + new_ssid + '"', in_file)
+    out_file = re.sub(r'psk=".*"', 'psk=' + '"' + new_password + '"', out_file)
 
     with open(filepath, 'w') as f:
         f.write(out_file)
@@ -623,7 +621,6 @@ mode
 
 # test toggle state
 if check_internet():
-
 
     if owner == 'none':
         print("should boot mode 3 (LIKE MODE 1)")
