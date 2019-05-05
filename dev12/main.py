@@ -225,6 +225,7 @@ class RepeatTimerThread(threading.Thread):
         global person_list_sn
 
         i = 0
+
         while self.running:
 
             try:
@@ -247,15 +248,21 @@ class RepeatTimerThread(threading.Thread):
 
                 status = j_res['status']
 
+                last_enable_flag = None
+
+                if i == 0:
+                    last_enable_flag = status
+
+                if last_enable_flag != status:
+                    print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
+
                 update_flag = False
 
                 if status == 'disable':
-                    print("RepeatTimerThread [" + str(i) + "]:\tDISABLE")
                     enable_flag = False
 
                 elif status == 'enable':
                     enable_flag = True
-                    print("RepeatTimerThread [" + str(i) + "]:\tENABLE")
 
                     if "key_sn" in j_res or "group_sn" in j_res or "person_list_sn" in j_res:
                         enable_flag = False
@@ -514,8 +521,6 @@ def check_internet():
 
 
 def set_new_ssid(new_ssid, new_password):
-
-
     global debug_on_window
 
     if debug_on_window:
@@ -539,6 +544,7 @@ def set_new_ssid(new_ssid, new_password):
         f.close()
 
     print("set new ssid:\tOK")
+
 
 def boot_mode(mode):
     # print("Boot on Mode:\t", str(mode))
@@ -572,11 +578,12 @@ def boot_mode(mode):
     elif mode == 4:
         print("BOOT MODE:\t4")
         repeat_timer_thread.start()
-        time.sleep(5)  # wait for setup key
+        time.sleep(2)  # wait for setup key
 
         camera_reader_thread.start()
         haarcascad_thread.start()
         azure_caller_thread.start()
+
 
 # azure_var
 
@@ -599,7 +606,6 @@ image_path = None
 debug_on_window = True
 debug_flag = False
 
-
 process = os.popen('hostname')
 proc_res = process.read()
 process.close()
@@ -611,7 +617,6 @@ else:
     debug_on_window = True
 
 print("debug_on_window => ", debug_on_window)
-
 
 # server_var
 server_ip = "13.76.191.11"
