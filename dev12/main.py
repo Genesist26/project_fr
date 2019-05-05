@@ -232,7 +232,7 @@ class RepeatTimerThread(threading.Thread):
                 # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + "&person_list_sn" + person_list_sn + ""
                 # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
                 url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
-                print(url_str)
+                # print(url_str)
 
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
@@ -242,7 +242,7 @@ class RepeatTimerThread(threading.Thread):
 
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
-                print(res_string)
+                # print(res_string)
                 j_res = json.loads(res_string)
 
                 status = j_res['status']
@@ -501,21 +501,6 @@ def reboot():
         os.system('reboot')
 
 
-def boot_mode(mode):
-    print("Boot on Mode:\t", str(mode))
-
-    if mode == 1:
-        print("debugonwindow =>", debug_on_window)
-        if not debug_on_window:
-            setup_ap()
-        flask_server_thread.start()
-    elif mode == 2:
-        repeat_timer_thread.start()
-        camera_reader_thread.start()
-        haarcascad_thread.start()
-        azure_caller_thread.start()
-
-
 def check_internet():
     print("checking internet connection:", end='')
     url_str = "http://google.com"
@@ -555,6 +540,43 @@ def set_new_ssid(new_ssid, new_password):
 
     print("set new ssid:\tOK")
 
+def boot_mode(mode):
+    # print("Boot on Mode:\t", str(mode))
+
+    if mode == 1:
+        print("BOOT MODE:\t1")
+        if debug_on_window:
+            print(">>> debug on windows cannot setup wifi AP <<<")
+            flask_server_thread.start()
+        else:
+            setup_ap()
+            flask_server_thread.start()
+            while True:
+
+                if reboot_flag:
+                    if not debug_on_window:
+                        os.system('reboot')
+                    else:
+                        print("need to reboot [WINDOWS OS]")
+                        exit()
+                else:
+                    time.sleep(3)
+    elif mode == 2:
+        print("BOOT MODE:\t2")
+        os.system('rm /home/pi/project/config.json')
+        print("SWITCH MODE TO:\t1")
+        return boot_mode(1)
+    elif mode == 3:
+        print("BOOT MODE:\t3")
+        boot_mode(1)
+    elif mode == 4:
+        print("BOOT MODE:\t4")
+        repeat_timer_thread.start()
+        time.sleep(5)  # wait for setup key
+
+        camera_reader_thread.start()
+        haarcascad_thread.start()
+        azure_caller_thread.start()
 
 # azure_var
 
@@ -619,48 +641,15 @@ flask_server_thread = FlaskServerThread()
 repeat_timer_thread = RepeatTimerThread()
 
 if check_internet():
-
     if owner == 'none':
-        print("BOOT MODE:\t3 (LIKE MODE 1)")
-
-        if debug_on_window:
-            print(">>> debug on windows cannot setup wifi AP <<<")
-        else:
-            setup_ap()
-
-        flask_server_thread.start()
-        while True:
-            if reboot_flag:
-                os.system('reboot')
-            else:
-                print("running")
-                time.sleep(3)
+        boot_mode(3)
     else:
-        print("BOOT MODE:\t4")
-        repeat_timer_thread.start()
-        time.sleep(5)  # wait for setup key
-
-        camera_reader_thread.start()
-        haarcascad_thread.start()
-        azure_caller_thread.start()
+        boot_mode(4)
 else:
     if owner == 'none':
-        print("BOOT MODE:\t1")
-
-        if debug_on_window:
-            print(">>> debug on windows cannot setup wifi AP <<<")
-            flask_server_thread.start()
-        else:
-            setup_ap()
-            flask_server_thread.start()
-            while True:
-                if reboot_flag:
-                    os.system('reboot')
-                else:
-                    print("running")
-                    time.sleep(3)
+        boot_mode(1)
     else:
-        print("BOOT MODE:\t2")
+        boot_mode(2)
 
 # time.sleep(2)
 # while True:
