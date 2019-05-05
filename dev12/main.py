@@ -105,8 +105,7 @@ class HaarcascadThread(threading.Thread):
         global azure_flag
         global enable_flag
         global image_path
-        global immge_name
-        img_name = "test4"
+        img_name = "capture"
         last = 0
         i = 0
 
@@ -519,10 +518,10 @@ def check_internet():
     url_str = "http://google.com"
     try:
         urlopen(url_str)
-        print("Has internet connection")
+        print("internet:\tOK")
         return True
     except:
-        print("No internet connection")
+        print("internet:\tFAIL")
         return False
 
 
@@ -597,18 +596,6 @@ azure_caller_thread = AzureCallerThread()
 haarcascad_thread = HaarcascadThread()
 flask_server_thread = FlaskServerThread()
 repeat_timer_thread = RepeatTimerThread()
-
-'''
-mode
-1   no own
-
-'''
-# if owner == "none":
-#     boot_mode(1)
-# else:
-#     boot_mode(2)
-
-# test toggle state
 
 print("check internet key => ", key)
 if check_internet():
