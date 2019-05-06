@@ -51,26 +51,21 @@ class AzureCallerThread(threading.Thread):
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
         print("key => ", key)
-        i = 0
+        x = 0
         while self.running:
             if enable_flag and azure_flag:
                 lock.acquire()
                 azure_flag = False
                 lock.release()
 
+                x = x + 1
+                print("AzureCallerThread [" + str(x) + "]")
+
                 # api
                 try:
                     azure_detect_list = CF.face.detect(image_path)
                 except Exception as e:
-                    print("azure error .detect handler")
-                    e_msg = str(e)
-                    delay_str = re.search(r'Try again in(.*?)seconds', e_msg).group(1)
-                    delay = int(delay_str)
-                    print(delay)
-
-                    print("Try again in => ", delay)
-                    time.sleep(delay + 1)
-                    print("start try again")
+                    self.exception_handler(e)
 
                 face_ids = [d['faceId'] for d in azure_detect_list]
 
@@ -82,15 +77,7 @@ class AzureCallerThread(threading.Thread):
                     try:
                         azure_identified_list = CF.face.identify(face_ids, group_id)
                     except Exception as e:
-                        e_msg = str(e)
-                        print("azure error .identity  handler")
-                        delay_str = re.search(r'Try again in(.*?)seconds', e_msg).group(1)
-                        delay = int(delay_str)
-                        print(delay)
-
-                        print("Try again in => ", delay)
-                        time.sleep(delay + 1)
-                        print("start try again")
+                        self.exception_handler(e)
 
                     azure_known_number = azure_detect_number
                     known_counter = 0
@@ -127,11 +114,19 @@ class AzureCallerThread(threading.Thread):
                     if azure_known_number:
                         print("\tazure_unknown_person: " + str(azure_known_number))
 
-                print("AzureCallerThread [" + str(i) + "]")
-                i = i + 1
+
 
     def stop(self):
         self.running = False
+
+    def exception_handler(self, e):
+        e_msg = str(e)
+        delay_str = re.search(r'Try again in(.*?)seconds', e_msg).group(1)
+        delay = int(delay_str)
+
+        print("Try again in:\t" + str(delay) + " second")
+        time.sleep(delay)
+        print("RETRY")
 
 
 class HaarcascadThread(threading.Thread):
@@ -351,10 +346,11 @@ class RepeatTimerThread(threading.Thread):
                 print("urlopen:\t ERROR")
 
             # debug only
-            print("implement send list_buffer => ")
-            print("list_buffer size => ", len(list_buffer))
-            print("list_buffer => ", list_buffer)
-            list_buffer = []
+            if debug_flag:
+                print("implement send list_buffer => ")
+                print("list_buffer size => ", len(list_buffer))
+                print("list_buffer => ", list_buffer)
+                list_buffer = []
 
             i = i + 1
             time.sleep(10)
