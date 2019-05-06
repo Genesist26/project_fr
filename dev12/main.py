@@ -250,11 +250,16 @@ class RepeatTimerThread(threading.Thread):
 
                 status = j_res['status']
 
+                if "owner" in j_res:  # handler owner removed or changed
+                    owner = j_res["owner"]
+                    if owner == 'none':
+                        reset_device()
+
                 if i == 0:
                     print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
                     last_status = status
 
-                if status is not last_status:
+                if status != last_status:
                     print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
                     last_status = status
 
@@ -286,10 +291,10 @@ class RepeatTimerThread(threading.Thread):
                                 print("New group_name:\t", group_name)
                                 print("New group_id:\t", group_id)
 
-                            if "location" in j_res:  # handle new group
-                                location = j_res['location']
-                                print("New location:\t", location)
-                                update_person_list()
+                            # if "location" in j_res:  # handle new group
+                            #     location = j_res['location']
+                            #     print("New location:\t", location)
+                            #     update_person_list()
 
                         # if "person_list_sn" in j_res:  # new config available
                         #     person_list_sn = j_res['person_list_sn']
@@ -592,6 +597,18 @@ def boot_mode(mode):
         camera_reader_thread.start()
         haarcascad_thread.start()
         azure_caller_thread.start()
+
+
+def reset_device():
+    print(">>> RESET DEVIEC <<<")
+
+    global debug_on_window
+
+    if debug_on_window:
+        print("remove config.json and restart program!!!")
+    else:
+        os.system('rm /home/pi/project/config.json')
+        os.system('reboot')
 
 
 # azure_var

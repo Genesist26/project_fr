@@ -1,7 +1,6 @@
-import threading
+x = False
+y =True
 
-def hello():
-    print("hello, Timer")
-
-t = threading.Timer(3.0, hello)
-t.start()
+if x is not y:
+    print("not")
+else:
