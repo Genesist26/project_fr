@@ -114,8 +114,6 @@ class AzureCallerThread(threading.Thread):
                     if azure_known_number:
                         print("\tazure_unknown_person: " + str(azure_known_number))
 
-
-
     def stop(self):
         self.running = False
 
