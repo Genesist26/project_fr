@@ -270,7 +270,7 @@ class RepeatTimerThread(threading.Thread):
             try:
 
                 url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
-
+                print(url_str)
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
                     print("key_sn:\t" + key_sn)
