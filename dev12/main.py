@@ -224,6 +224,8 @@ class RepeatTimerThread(threading.Thread):
         global person_list
         global person_list_sn
 
+        last_status = "disable"
+
         i = 0
 
         while self.running:
@@ -248,13 +250,13 @@ class RepeatTimerThread(threading.Thread):
 
                 status = j_res['status']
 
-                last_enable_flag = None
-
                 if i == 0:
-                    last_enable_flag = status
-
-                if last_enable_flag != status:
                     print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
+                    last_status = status
+
+                if status is not last_status:
+                    print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
+                    last_status = status
 
                 update_flag = False
 
@@ -479,13 +481,20 @@ def save_msg_to_json(msg, filename):
 
 
 def setup_ap():
-    access_point = pyaccesspoint.AccessPoint()
+    psk = 'project-fr'
+    ssid = psk + "-" + str(hex(get_mac()))[-4:]
+
+    access_point = pyaccesspoint.AccessPoint(ssid=ssid, password=psk)
     access_point.stop()
     access_point.start()
+
     if access_point.is_running():
         print("setup AP:\tOK")
     else:
         print("setup AP:\tFAIL")
+
+    print("\tSSID:\t", ssid)
+    print("\tPSK:\t", psk)
 
 
 def save_register_info():
