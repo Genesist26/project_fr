@@ -149,7 +149,13 @@ class HaarcascadThread(threading.Thread):
             if enable_flag:
                 frame = frame_buffer
 
-                faces = face_cascade.detectMultiScale(frame, 1.3, 5)
+                faces = face_cascade.detectMultiScale(
+                    frame,
+                    scaleFactor=1.1,
+                    minNeighbors=5,
+                    minSize=(150, 150),
+                    flags=0
+                )
                 current = len(faces)
 
                 if current == 0:
@@ -344,11 +350,10 @@ class RepeatTimerThread(threading.Thread):
                 print("urlopen:\t ERROR")
 
             # debug only
-            if debug_flag:
-                print("implement send list_buffer => ")
-                print("list_buffer size => ", len(list_buffer))
-                print("list_buffer => ", list_buffer)
-                list_buffer = []
+            print("implement send list_buffer => send["+str(len(list_buffer))+"]")
+            # print("list_buffer size => ", len(list_buffer))
+            # print("list_buffer => ", list_buffer)
+            list_buffer = []
 
             i = i + 1
             time.sleep(10)
@@ -723,21 +728,28 @@ else:
     else:
         boot_mode(2)
 
-# time.sleep(2)
-# while True:
-#     frame = frame_buffer
-#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#
-#     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-#     for (x, y, w, h) in faces:
-#         img = cv2.rectangle(gray, (x, y), (x + w, y + h), (255, 0, 0), 2)
-#         roi_gray = gray[y:y + h, x:x + w]
-#         roi_color = gray[y:y + h, x:x + w]
-#
-#     cv2.imshow('frame', gray)
-#     if cv2.waitKey(1) & 0xFF == ord('q'):
-#         break
-#
-# # When everything done, release the capture
-# camera_reader_thread.stop()
-# cv2.destroyAllWindows()
+time.sleep(5)
+while True:
+    frame = frame_buffer
+    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(
+        frame,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(150, 150),
+        flags=0
+    )
+
+    for (x, y, w, h) in faces:
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        roi_gray = frame[y:y + h, x:x + w]
+        roi_color = frame[y:y + h, x:x + w]
+
+    cv2.imshow('frame', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# When everything done, release the capture
+camera_reader_thread.stop()
+cv2.destroyAllWindows()
