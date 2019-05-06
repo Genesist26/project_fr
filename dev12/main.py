@@ -11,6 +11,7 @@ from uuid import getnode as get_mac
 
 import cognitive_face as CF
 import cv2
+import requests
 from flask import Flask, request, render_template, Response
 
 
@@ -50,7 +51,6 @@ class AzureCallerThread(threading.Thread):
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
-        print("key => ", key)
         x = 0
         while self.running:
             if enable_flag and azure_flag:
@@ -258,9 +258,7 @@ class RepeatTimerThread(threading.Thread):
         global key
         global group_name
         global group_id
-        global location
         global person_list
-        global person_list_sn
         global list_buffer
 
         last_status = "disable"
@@ -270,11 +268,8 @@ class RepeatTimerThread(threading.Thread):
         while self.running:
 
             try:
-                # res = urlopen("http://" + server_ip + ":" + server_port + "/code")
-                # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + "&person_list_sn" + person_list_sn + ""
-                # url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
+
                 url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
-                # print(url_str)
 
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
@@ -284,7 +279,6 @@ class RepeatTimerThread(threading.Thread):
 
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
-                # print(res_string)
                 j_res = json.loads(res_string)
 
                 status = j_res['status']
@@ -310,7 +304,7 @@ class RepeatTimerThread(threading.Thread):
                 elif status == 'enable':
                     enable_flag = True
 
-                    if "key_sn" in j_res or "group_sn" in j_res or "person_list_sn" in j_res:
+                    if "key_sn" in j_res or "group_sn" in j_res:
                         enable_flag = False
                         update_flag = True
 
@@ -330,17 +324,6 @@ class RepeatTimerThread(threading.Thread):
                                 print("New group_name:\t", group_name)
                                 print("New group_id:\t", group_id)
 
-                            # if "location" in j_res:  # handle new group
-                            #     location = j_res['location']
-                            #     print("New location:\t", location)
-                            #     update_person_list()
-
-                        # if "person_list_sn" in j_res:  # new config available
-                        #     person_list_sn = j_res['person_list_sn']
-                        #     person_list = j_res['person_list']
-                        #     print("New person_list_sn:\t", person_list_sn)
-                        #     update_person_list()
-
                 if update_flag:
                     update_config()
                     update_person_list()  # debug only (wait for server side ready)
@@ -349,8 +332,10 @@ class RepeatTimerThread(threading.Thread):
                 enable_flag = False
                 print("urlopen:\t ERROR")
 
-            # debug only
-            print("implement send list_buffer => send["+str(len(list_buffer))+"]")
+            # send list_buffer to server
+            data_json = json.dumps(list_buffer)
+            payload = {'json_payload': data_json}
+            requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/found", data=payload)
             # print("list_buffer size => ", len(list_buffer))
             # print("list_buffer => ", list_buffer)
             list_buffer = []
@@ -373,8 +358,6 @@ def update_config():
     global key
     global group_name
     global group_id
-    global location
-    global person_list_sn
     global person_list
 
     global debug_on_window
@@ -384,17 +367,17 @@ def update_config():
     else:
         filename = "/home/pi/project/config.json"  # pi
 
+    mac = hex(get_mac())
+    print("mac => ", mac)
     msg = {
-        "cam_id": hex(get_mac()),
+        "cam_id": mac,
         "cam_name": cam_name,
         "owner": owner,
         "key_sn": key_sn,
         "group_sn": group_sn,
-        "person_list_sn": person_list_sn,
         "key": key,
         "group_name": group_name,
         "group_id": group_id,
-        "location": location,
     }
 
     with open(filename, 'w') as fp:
@@ -415,8 +398,6 @@ def load_config():
     global key
     global group_name
     global group_id
-    global location
-    global person_list_sn
 
     global debug_on_window
 
@@ -424,24 +405,26 @@ def load_config():
         filename = "D:/home/pi/project/project_fr/config.json"  # windows
     else:
         filename = "/home/pi/project/config.json"  # pi
-    msg = {
-        "cam_id": hex(get_mac()),
+
+    mac = hex(get_mac())
+    print("mac => ", mac)
+
+    config_template = {
+        "cam_id": mac,
         "cam_name": "none",
         "owner": "none",
         "key_sn": "none",
         "group_sn": "none",
-        "person_list_sn": "none",
         "key": "none",
         "group_name": "none",
         "group_id": "none",
-        "location": "none",
     }
 
     if not os.path.exists(filename):
         print("config:\tNOT EXISTS [CREATING]")
 
         with open(filename, 'w') as fp:
-            json.dump(msg, fp)
+            json.dump(config_template, fp)
             fp.close()
 
         print("config:\tCREATING COMPLETED")
@@ -458,13 +441,11 @@ def load_config():
             owner = data["owner"]
             key_sn = data["key_sn"]
             group_sn = data["group_sn"]
-            person_list_sn = data["person_list_sn"]
             key = data["key"]
             group_name = data["group_name"]
             group_id = data["group_id"]
-            location = data["location"]
 
-        msg = {
+        config_template = {
             "cam_id": hex(get_mac()),
             "cam_name": cam_name,
             "owner": owner,
@@ -473,13 +454,11 @@ def load_config():
             "key": key,
             "group_name": group_name,
             "group_id": group_id,
-            "location": location,
-            "person_list_sn": person_list_sn,
 
         }
 
     # pretty print json string
-    pp_json_string(msg)
+    pp_json_string(config_template)
 
 
 def load_person_list():
@@ -667,9 +646,7 @@ group_sn = None
 key = None
 group_name = None
 group_id = None
-location = None
 person_list = []
-person_list_sn = None
 image_path = None
 
 # debug_var
@@ -728,28 +705,29 @@ else:
     else:
         boot_mode(2)
 
-time.sleep(5)
-while True:
-    frame = frame_buffer
-    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+if debug_on_window:
+    time.sleep(5)
+    while True:
+        frame = frame_buffer
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    faces = face_cascade.detectMultiScale(
-        frame,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(150, 150),
-        flags=0
-    )
+        faces = face_cascade.detectMultiScale(
+            frame,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(150, 150),
+            flags=0
+        )
 
-    for (x, y, w, h) in faces:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        roi_gray = frame[y:y + h, x:x + w]
-        roi_color = frame[y:y + h, x:x + w]
+        for (x, y, w, h) in faces:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            roi_gray = frame[y:y + h, x:x + w]
+            roi_color = frame[y:y + h, x:x + w]
 
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        cv2.imshow('frame', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-# When everything done, release the capture
-camera_reader_thread.stop()
-cv2.destroyAllWindows()
+    # When everything done, release the capture
+    camera_reader_thread.stop()
+    cv2.destroyAllWindows()
