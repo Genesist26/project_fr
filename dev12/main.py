@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import re
@@ -45,6 +46,7 @@ class AzureCallerThread(threading.Thread):
         global key
         global person_list
         global image_path
+        global list_buffer
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
@@ -57,7 +59,19 @@ class AzureCallerThread(threading.Thread):
                 lock.release()
 
                 # api
-                azure_detect_list = CF.face.detect(image_path)
+                try:
+                    azure_detect_list = CF.face.detect(image_path)
+                except Exception as e:
+                    print("azure error .detect handler")
+                    e_msg = str(e)
+                    delay_str = re.search(r'Try again in(.*?)seconds', e_msg).group(1)
+                    delay = int(delay_str)
+                    print(delay)
+
+                    print("Try again in => ", delay)
+                    time.sleep(delay + 1)
+                    print("start try again")
+
                 face_ids = [d['faceId'] for d in azure_detect_list]
 
                 azure_detect_number = len(face_ids)
@@ -65,10 +79,24 @@ class AzureCallerThread(threading.Thread):
                 print("azure_detect_number: " + str(azure_detect_number))
 
                 if azure_detect_number:
-                    azure_identified_list = CF.face.identify(face_ids, group_id)
+                    try:
+                        azure_identified_list = CF.face.identify(face_ids, group_id)
+                    except Exception as e:
+                        e_msg = str(e)
+                        print("azure error .identity  handler")
+                        delay_str = re.search(r'Try again in(.*?)seconds', e_msg).group(1)
+                        delay = int(delay_str)
+                        print(delay)
+
+                        print("Try again in => ", delay)
+                        time.sleep(delay + 1)
+                        print("start try again")
 
                     azure_known_number = azure_detect_number
                     known_counter = 0
+
+                    currentDT = datetime.datetime.now()
+                    timestamp = currentDT.strftime("%Y-%m-%d %H:%M:%S")
 
                     print("\tazure_known_person:")
 
@@ -81,9 +109,20 @@ class AzureCallerThread(threading.Thread):
                             for person in person_list:
                                 if candidate_personId in person['personId']:
                                     known_counter = known_counter + 1
+                                    azure_known_number -= 1
+
+                                    name = person['name']
+
+                                    di = {
+                                        "name": name,
+                                        "confidense": candidate_confidence,
+                                        "timestamp": timestamp
+                                    }
+
+                                    list_buffer.append(di)
+
                                     print("\t\t" + str(known_counter) + ": [" + person['name'] + "," + str(
                                         candidate_confidence) + "]")
-                                    azure_known_number -= 1
 
                     if azure_known_number:
                         print("\tazure_unknown_person: " + str(azure_known_number))
@@ -132,7 +171,7 @@ class HaarcascadThread(threading.Thread):
                     last = current
                     i = i + 1
 
-                time.sleep(0.3)
+                # time.sleep(1)
 
     def stop(self):
         self.running = False
@@ -223,6 +262,7 @@ class RepeatTimerThread(threading.Thread):
         global location
         global person_list
         global person_list_sn
+        global list_buffer
 
         last_status = "disable"
 
@@ -309,6 +349,12 @@ class RepeatTimerThread(threading.Thread):
             except:
                 enable_flag = False
                 print("urlopen:\t ERROR")
+
+            # debug only
+            print("implement send list_buffer => ")
+            print("list_buffer size => ", len(list_buffer))
+            print("list_buffer => ", list_buffer)
+            list_buffer = []
 
             i = i + 1
             time.sleep(10)
@@ -659,6 +705,7 @@ lock = threading.Lock()
 enable_flag = False
 azure_flag = False
 frame_buffer = None
+list_buffer = []
 reboot_flag = False
 
 ### initial funtion
