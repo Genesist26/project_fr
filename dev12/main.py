@@ -280,7 +280,7 @@ class RepeatTimerThread(threading.Thread):
                     streaming = j_res['streaming']
                     print("implement streaming function")
                     if streaming:
-                        print("start streaming")
+                        print("stream streaming")
                     else:
                         print("stop streaming")
 
@@ -288,17 +288,13 @@ class RepeatTimerThread(threading.Thread):
                 i = i + 1
                 update_flag = False
 
-
                 if status == "deactivate":
-                    print("implement /reg")
-                    url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
-                    print(url_str)
-
-                elif status == 'deleted':
-                    print("implement /del")
-                    url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/del?cam_id=" + cam_id
-                    print(url_str)
-                    reset_device()
+                    if key_sn == 'none':
+                        print("implement /reg")
+                        url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
+                        print(url_str)
+                    else:
+                        reset_device()
 
                 elif status == 'disable':
                     enable_flag = False
@@ -634,6 +630,7 @@ def reset_device():
     else:
         set_new_ssid('00000000', '00000000')
         os.system('rm /home/pi/project/config.json')
+        os.system('rm /home/pi/project/person_list.json')
         os.system('reboot')
 
 
