@@ -289,6 +289,7 @@ class RepeatTimerThread(threading.Thread):
                     print("implement /del")
                     url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/del?cam_id=" + cam_id
                     print(url_str)
+                    reset_device()
 
                 elif status == 'disable':
                     enable_flag = False
@@ -358,9 +359,8 @@ def update_config():
     else:
         filename = "/home/pi/project/config.json"  # pi
 
-    print('cam_name => ' + cam_name)
     mac = get_mac()
-    print("mac => ", mac)
+
     msg = {
         "cam_id": mac,
         "cam_name": cam_name,
