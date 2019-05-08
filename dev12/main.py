@@ -276,6 +276,11 @@ class RepeatTimerThread(threading.Thread):
                 j_res = json.loads(res_string)
 
                 status = j_res['status']
+
+                print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
+                i = i + 1
+                update_flag = False
+
                 if "streaming" in j_res:
                     streaming = j_res['streaming']
                     print("implement streaming function")
@@ -284,15 +289,18 @@ class RepeatTimerThread(threading.Thread):
                     else:
                         print("stop streaming")
 
-                print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
-                i = i + 1
-                update_flag = False
-
                 if status == "deactivate":
+                    enable_flag = False
                     if key_sn == 'none':
                         print("implement /reg")
                         url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
                         print(url_str)
+
+                        di = {"cam_id": cam_id, "ownder": owner}
+
+                        data_json = json.dumps(di)
+                        payload = {'json_payload': data_json}
+                        requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg", data=payload)
                     else:
                         reset_device()
 
@@ -331,11 +339,12 @@ class RepeatTimerThread(threading.Thread):
                 print("urlopen:\t ERROR")
 
             # send list_buffer to server
-            data_json = json.dumps(list_buffer)
-            payload = {'json_payload': data_json}
-            requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/found", data=payload)
+            if len(list_buffer):
+                data_json = json.dumps(list_buffer)
+                payload = {'json_payload': data_json}
+                requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/found", data=payload)
 
-            list_buffer = []
+                list_buffer = []
 
             i = i + 1
             time.sleep(10)
@@ -626,7 +635,10 @@ def reset_device():
     global debug_on_window
 
     if debug_on_window:
-        print("remove config.json and restart program!!!")
+        print("remove config.json, person_list.json and restart program!!!")
+        os.remove('D:/home/pi/project/project_fr/config.json')
+        os.remove('D:/home/pi/project/project_fr/person_list.json')
+        exit()
     else:
         set_new_ssid('00000000', '00000000')
         os.system('rm /home/pi/project/config.json')
