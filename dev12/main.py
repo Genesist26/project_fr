@@ -260,27 +260,30 @@ class RepeatTimerThread(threading.Thread):
 
         i = 0
 
+        if key_sn == 'none':
+            url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
+            print("/reg [" + url_str + "]")
+
+            di = {"cam_id": cam_id, "owner": owner, 'cam_name': cam_name}
+
+            data_json = json.dumps(di)
+            payload = {'json_payload': data_json}
+            requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg",
+                          data=payload)
         while self.running:
 
             try:
-
                 url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn
-                if debug_flag:
-                    print("cam_id:\t" + cam_id)
-                    print("key_sn:\t" + key_sn)
-                    print("group_sn:\t" + group_sn)
-                    print("url_str:\t" + url_str)
 
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
                 j_res = json.loads(res_string)
-
                 status = j_res['status']
+
 
                 print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
                 i = i + 1
                 update_flag = False
-
                 if "streaming" in j_res:
                     streaming = j_res['streaming']
                     print("implement streaming function")
@@ -291,27 +294,17 @@ class RepeatTimerThread(threading.Thread):
 
                 if status == "deactivate":
                     enable_flag = False
-                    if key_sn == 'none':
-                        print("implement /reg")
-                        url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
-                        print(url_str)
-
-                        di = {"cam_id": cam_id, "owner": owner, 'cam_name': cam_name}
-
-                        data_json = json.dumps(di)
-                        payload = {'json_payload': data_json}
-                        requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg",
-                                      data=payload)
-                        enable_flag = True
-
-                    else:
+                    if key_sn != 'none':
                         reset_device()
 
                 elif status == 'disable':
                     enable_flag = False
 
                 elif status == 'enable':
-                    enable_flag = True
+                    if group_id != 'none':
+                        enable_flag = True
+                    else:
+                        enable_flag = False
 
                 if "key_sn" in j_res or "group_sn" in j_res:
                     enable_flag = False
@@ -350,7 +343,7 @@ class RepeatTimerThread(threading.Thread):
                 list_buffer = []
 
             i = i + 1
-            time.sleep(10)
+            time.sleep(5)
 
     def stop(self):
         self.running = False
@@ -736,29 +729,29 @@ else:
     else:
         boot_mode(2)
 
-if debug_on_window:
-    time.sleep(5)
-    while True:
-        frame = frame_buffer
-        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        faces = face_cascade.detectMultiScale(
-            frame,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(150, 150),
-            flags=0
-        )
-
-        for (x, y, w, h) in faces:
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            roi_gray = frame[y:y + h, x:x + w]
-            roi_color = frame[y:y + h, x:x + w]
-
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # When everything done, release the capture
-    camera_reader_thread.stop()
-    cv2.destroyAllWindows()
+# if debug_on_window:
+#     time.sleep(5)
+#     while True:
+#         frame = frame_buffer
+#         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#
+#         faces = face_cascade.detectMultiScale(
+#             frame,
+#             scaleFactor=1.1,
+#             minNeighbors=5,
+#             minSize=(150, 150),
+#             flags=0
+#         )
+#
+#         for (x, y, w, h) in faces:
+#             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+#             roi_gray = frame[y:y + h, x:x + w]
+#             roi_color = frame[y:y + h, x:x + w]
+#
+#         cv2.imshow('frame', frame)
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+#
+#     # When everything done, release the capture
+#     camera_reader_thread.stop()
+#     cv2.destroyAllWindows()
