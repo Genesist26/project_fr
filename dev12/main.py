@@ -296,11 +296,12 @@ class RepeatTimerThread(threading.Thread):
                         url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
                         print(url_str)
 
-                        di = {"cam_id": cam_id, "ownder": owner}
+                        di = {"cam_id": cam_id, "ownder": owner, 'cam_name': cam_name}
 
                         data_json = json.dumps(di)
                         payload = {'json_payload': data_json}
-                        requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg", data=payload)
+                        requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg",
+                                      data=payload)
                     else:
                         reset_device()
 
@@ -333,7 +334,7 @@ class RepeatTimerThread(threading.Thread):
                 if update_flag:
                     update_config()
                     update_person_list()  # debug only (wait for server side ready)
-                    enable_flag = True
+
             except:
                 enable_flag = False
                 print("urlopen:\t ERROR")
