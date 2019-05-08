@@ -286,25 +286,25 @@ class RepeatTimerThread(threading.Thread):
                 elif status == 'enable':
                     enable_flag = True
 
-                    if "key_sn" in j_res or "group_sn" in j_res:
-                        enable_flag = False
-                        update_flag = True
+                if "key_sn" in j_res or "group_sn" in j_res:
+                    enable_flag = False
+                    update_flag = True
 
-                        if "key_sn" in j_res:  # new key available
-                            key_sn = j_res["key_sn"]
-                            key = j_res["key"]
-                            print("New key_sn:\t", key_sn)
-                            print("New key:\t", key)
+                    if "key_sn" in j_res:  # new key available
+                        key_sn = j_res["key_sn"]
+                        key = j_res["key"]
+                        print("New key_sn:\t", key_sn)
+                        print("New key:\t", key)
 
-                        if "group_sn" in j_res:  # new config available
-                            group_sn = j_res["group_sn"]
-                            print("New group_sn:\t", group_sn)
+                    if "group_sn" in j_res:  # new config available
+                        group_sn = j_res["group_sn"]
+                        print("New group_sn:\t", group_sn)
 
-                            if "group_name" in j_res:  # handle new group
-                                group_name = j_res['group_name']
-                                group_id = j_res['group_id']
-                                print("New group_name:\t", group_name)
-                                print("New group_id:\t", group_id)
+                        if "group_name" in j_res:  # handle new group
+                            group_name = j_res['group_name']
+                            group_id = j_res['group_id']
+                            print("New group_name:\t", group_name)
+                            print("New group_id:\t", group_id)
 
                 if update_flag:
                     update_config()
