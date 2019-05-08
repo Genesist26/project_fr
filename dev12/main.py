@@ -7,7 +7,7 @@ import threading
 import time
 from subprocess import check_output
 from urllib.request import urlopen
-from uuid import getnode as get_mac
+from uuid import getnode as get_uuid_mac
 
 import cognitive_face as CF
 import cv2
@@ -367,7 +367,7 @@ def update_config():
     else:
         filename = "/home/pi/project/config.json"  # pi
 
-    mac = hex(get_mac())
+    mac = get_mac()
     print("mac => ", mac)
     msg = {
         "cam_id": mac,
@@ -406,7 +406,7 @@ def load_config():
     else:
         filename = "/home/pi/project/config.json"  # pi
 
-    mac = hex(get_mac())
+    mac = get_mac()
     print("mac => ", mac)
 
     config_template = {
@@ -446,7 +446,7 @@ def load_config():
             group_id = data["group_id"]
 
         config_template = {
-            "cam_id": hex(get_mac()),
+            "cam_id": get_mac(),
             "cam_name": cam_name,
             "owner": owner,
             "key_sn": key_sn,
@@ -511,7 +511,7 @@ def save_msg_to_json(msg, filename):
 
 def setup_ap():
     psk = 'project-fr'
-    ssid = psk + "-" + str(hex(get_mac()))[-4:]
+    ssid = psk + "-" + get_mac()[-4:]
 
     access_point = pyaccesspoint.AccessPoint(ssid=ssid, password=psk)
     access_point.stop()
@@ -633,6 +633,23 @@ def reset_device():
     else:
         os.system('rm /home/pi/project/config.json')
         os.system('reboot')
+
+
+def get_mac(interface='wlan0'):
+    global debug_on_window
+
+    if debug_on_window:
+        mac = str(hex(get_uuid_mac()))
+
+    else:
+        try:
+            mac = open('/sys/class/net/%s/address' % interface).read()
+            mac = '0x' + ((mac.replace(':', '')).replace("\n", ''))
+
+        except:
+            mac_hex_str = "00:00:00:00:00:00"
+
+    return mac[0:17]
 
 
 # azure_var
