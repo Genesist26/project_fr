@@ -215,9 +215,6 @@ class FlaskServerThread(threading.Thread):
             print("\towner => ", owner)
             print("\tcam_name => ", cam_name)
 
-            owner = ssid
-            cam_name = password
-
             update_config()
             set_new_ssid(ssid, password)
             return shutdown("Try to connect to SSID: " + ssid + "")
@@ -283,10 +280,6 @@ class RepeatTimerThread(threading.Thread):
 
                 status = j_res['status']
 
-                if "owner" in j_res:  # handler owner removed or changed
-                    owner = j_res["owner"]
-                    if owner == 'none':
-                        reset_device()
 
                 if i == 0:
                     print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
@@ -336,8 +329,7 @@ class RepeatTimerThread(threading.Thread):
             data_json = json.dumps(list_buffer)
             payload = {'json_payload': data_json}
             requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/found", data=payload)
-            # print("list_buffer size => ", len(list_buffer))
-            # print("list_buffer => ", list_buffer)
+
             list_buffer = []
 
             i = i + 1
@@ -367,6 +359,7 @@ def update_config():
     else:
         filename = "/home/pi/project/config.json"  # pi
 
+    print('cam_name => '+cam_name)
     mac = get_mac()
     print("mac => ", mac)
     msg = {
@@ -446,7 +439,7 @@ def load_config():
             group_id = data["group_id"]
 
         config_template = {
-            "cam_id": get_mac(),
+            "cam_id": mac,
             "cam_name": cam_name,
             "owner": owner,
             "key_sn": key_sn,
@@ -631,6 +624,7 @@ def reset_device():
     if debug_on_window:
         print("remove config.json and restart program!!!")
     else:
+        set_new_ssid('00000000', '00000000')
         os.system('rm /home/pi/project/config.json')
         os.system('reboot')
 
