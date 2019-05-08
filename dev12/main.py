@@ -258,8 +258,6 @@ class RepeatTimerThread(threading.Thread):
         global person_list
         global list_buffer
 
-        last_status = "disable"
-
         i = 0
 
         while self.running:
@@ -267,7 +265,6 @@ class RepeatTimerThread(threading.Thread):
             try:
 
                 url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
-                print(url_str)
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
                     print("key_sn:\t" + key_sn)
@@ -279,16 +276,8 @@ class RepeatTimerThread(threading.Thread):
                 j_res = json.loads(res_string)
 
                 status = j_res['status']
-
-
-                if i == 0:
-                    print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
-                    last_status = status
-
-                if status != last_status:
-                    print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
-                    last_status = status
-
+                print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
+                i = i + 1
                 update_flag = False
 
                 if status == 'disable':
@@ -359,7 +348,7 @@ def update_config():
     else:
         filename = "/home/pi/project/config.json"  # pi
 
-    print('cam_name => '+cam_name)
+    print('cam_name => ' + cam_name)
     mac = get_mac()
     print("mac => ", mac)
     msg = {
