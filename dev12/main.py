@@ -276,9 +276,18 @@ class RepeatTimerThread(threading.Thread):
                 j_res = json.loads(res_string)
 
                 status = j_res['status']
+                if "streaming" in j_res:
+                    streaming = j_res['streaming']
+                    print("implement streaming function")
+                    if streaming:
+                        print("start streaming")
+                    else:
+                        print("stop streaming")
+
                 print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
                 i = i + 1
                 update_flag = False
+
 
                 if status == "deactivate":
                     print("implement /reg")
