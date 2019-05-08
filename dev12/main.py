@@ -264,7 +264,7 @@ class RepeatTimerThread(threading.Thread):
 
             try:
 
-                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn + ""
+                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn
                 if debug_flag:
                     print("cam_id:\t" + cam_id)
                     print("key_sn:\t" + key_sn)
@@ -280,7 +280,17 @@ class RepeatTimerThread(threading.Thread):
                 i = i + 1
                 update_flag = False
 
-                if status == 'disable':
+                if status == "deactivate":
+                    print("implement /reg")
+                    url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
+                    print(url_str)
+
+                elif status == 'deleted':
+                    print("implement /del")
+                    url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/del?cam_id=" + cam_id
+                    print(url_str)
+
+                elif status == 'disable':
                     enable_flag = False
 
                 elif status == 'enable':
