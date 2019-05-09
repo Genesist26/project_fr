@@ -64,6 +64,7 @@ class AzureCallerThread(threading.Thread):
                 # api
                 try:
                     azure_detect_list = CF.face.detect(image_path)
+                    # print(azure_detect_list)
                 except Exception as e:
                     self.exception_handler(e)
 
@@ -280,7 +281,6 @@ class RepeatTimerThread(threading.Thread):
                 j_res = json.loads(res_string)
                 status = j_res['status']
 
-
                 print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
                 i = i + 1
                 update_flag = False
@@ -487,12 +487,14 @@ def update_person_list():
         person_list_filepath = "/home/pi/project/person_list.json"  # pi
 
     server_person_url = "http://13.76.191.11:8080/code/index.php/api/all_person/?cam_id=0x1e9cafa9b4&group_sn=" + group_sn + ""
+
     res = urlopen(server_person_url)
     res_string = json.loads((res.read()).decode("utf-8"))
     person_list = json.loads(res_string)
 
-    save_msg_to_json(person_list, person_list_filepath)
+    print("update person list => ", person_list)
 
+    write_json_file(person_list, person_list_filepath)
 
 def pp_json_string(tupple_msg):
     temp = json.dumps(tupple_msg)
@@ -500,15 +502,10 @@ def pp_json_string(tupple_msg):
     print(json.dumps(temp2, sort_keys=True, indent=4))
 
 
-def save_msg_to_json(msg, filename):
-    if not os.path.exists(filename):
-        print("save_msg_to_json:\tNOT EXISTS [CREATING]")
-
-        with open(filename, 'w') as fp:
-            json.dump(msg, fp)
-            fp.close()
-
-        print("save_msg_to_json:\tCREATING COMPLETED")
+def write_json_file(msg, filename):
+    with open(filename, 'w') as fp:
+        json.dump(msg, fp)
+        fp.close()
 
 
 def setup_ap():
