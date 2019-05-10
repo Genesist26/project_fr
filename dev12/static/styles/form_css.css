@@ -45,6 +45,39 @@ html {
     background-color: #ffffff;
 }
 
+.fsSubmitButton {
+    padding: 10px 15px 11px;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #3a57af;
+    color: #ffffff;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border: 1px solid #3a57af;
+    cursor: pointer;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+    -moz-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+    -webkit-box-shadow: 0 3px rgba(58, 87, 175, .75) inset;
+}
+
+/* Style by class. Effects the text of the contained options. */
+.dropdown {
+    width: 200px;
+    height: 39px;
+    -webkit-border-radius: 0px 4px 4px 0px/5px 5px 4px 4px;
+    -moz-border-radius: 0px 4px 4px 0px/0px 0px 4px 4px;
+    border-radius: 0px 4px 4px 0px/5px 5px 4px 4px;
+    background-color: #fff;
+    -webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, .09);
+    -moz-box-shadow: 1px 2px 5px rgba(0, 0, 0, .09);
+    box-shadow: 1px 2px 5px rgba(0, 0, 0, .09);
+    border: solid 1px #cbc9c9;
+    margin-left: -5px;
+    margin-top: 13px;
+    padding-left: 10px;
+}
+
 .testbox {
     margin: 20px auto;
     width: 343px;
