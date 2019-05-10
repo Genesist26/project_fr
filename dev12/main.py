@@ -192,14 +192,10 @@ class FlaskServerThread(threading.Thread):
         print("FlaskServerThread:\tSTART")
         app = Flask(__name__)
 
-        @app.route('/hello')
-        def hello():
-            return "Hello World!"
-
         @app.route('/')
         def index():
-            """Video streaming home page."""
-            return render_template('index.html')
+            dropdown_list = get_essid_list()
+            return render_template('index.html', dropdown_list=dropdown_list)
 
         @app.route('/connect', methods=['POST'])
         def connect():
@@ -496,6 +492,7 @@ def update_person_list():
 
     write_json_file(person_list, person_list_filepath)
 
+
 def pp_json_string(tupple_msg):
     temp = json.dumps(tupple_msg)
     temp2 = json.loads(temp)
@@ -506,6 +503,37 @@ def write_json_file(msg, filename):
     with open(filename, 'w') as fp:
         json.dump(msg, fp)
         fp.close()
+
+
+def get_essid_list():
+    global debug_on_window
+
+    ssid_list = []
+
+    if debug_on_window:
+        proc = os.popen('netsh wlan show network')
+        proc_str = proc.read()
+        proc.close()
+
+        proc_res = proc_str.split("\n")
+        for x in proc_res:
+            if 'SSID' in x:
+                temp = x[9:]
+                print(temp)
+                ssid_list.append(temp)
+
+    else:
+        proc = os.popen('iwlist wlan0 scan | grep ESSID')
+        proc_str = proc.read()
+        proc.close()
+
+        proc_res = proc_str.split("\n")
+
+        for x in proc_res:
+            temp = x[x.find("ESSID") + 7:-1]
+            ssid_list.append(temp)
+
+    return list(set(ssid_list))
 
 
 def setup_ap():
@@ -656,6 +684,17 @@ def get_mac(interface='wlan0'):
     return mac[0:17]
 
 
+def on_windows():
+    process = os.popen('hostname')
+    proc_res = process.read()
+    process.close()
+
+    if "pi" in proc_res:
+        return False
+    else:
+        return True
+
+
 # azure_var
 
 ### global_var
@@ -672,18 +711,11 @@ image_path = None
 
 # debug_var
 
-debug_on_window = True
+debug_on_window = on_windows()
 debug_flag = False
 
-process = os.popen('hostname')
-proc_res = process.read()
-process.close()
-
-if "pi" in proc_res:
-    debug_on_window = False
+if not debug_on_window:
     from PyAccessPoint import pyaccesspoint
-else:
-    debug_on_window = True
 
 print("debug_on_window => ", debug_on_window)
 
