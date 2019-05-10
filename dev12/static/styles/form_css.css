@@ -133,9 +133,9 @@ input[type=text], input[type=password] {
 }
 
 
-input[type=password] {
-    margin-bottom: 25px;
-}
+/*input[type=password] {*/
+/*    margin-bottom: 25px;*/
+/*}*/
 
 #icon {
     display: inline-block;
