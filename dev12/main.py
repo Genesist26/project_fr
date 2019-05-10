@@ -8,7 +8,7 @@ import time
 from subprocess import check_output
 from urllib.request import urlopen
 from uuid import getnode as get_uuid_mac
-
+from flask_fontawesome import FontAwesome
 import cognitive_face as CF
 import cv2
 import requests
@@ -190,7 +190,9 @@ class FlaskServerThread(threading.Thread):
             ip_addr = check_output(['hostname', '-I']).decode('ascii')
 
         print("FlaskServerThread:\tSTART")
+
         app = Flask(__name__)
+        fa = FontAwesome(app)
 
         @app.route('/')
         def index():

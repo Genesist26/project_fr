@@ -1,42 +1,80 @@
 <html>
 <head>
-    <title>Video Streaming Demonstration</title>
+    {{ fontawesome_html() }}
+    <title>Register</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/form_css.css') }}">
+    <style>
+        .fsSubmitButton {
+            padding: 10px 15px 11px;
+            font-size: 14px;
+            font-weight: 600;
+            background-color: #3a57af;
+            color: #ffffff;
+            border-radius: 5px;
+            -moz-border-radius: 5px;
+            -webkit-border-radius: 5px;
+            border: 1px solid #3a57af;
+            cursor: pointer;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+            -moz-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+            -webkit-box-shadow: 0 3px rgba(58, 87, 175, .75) inset;
+        }
+
+        /* Style by class. Effects the text of the contained options. */
+        .dropdown {
+            width: 200px;
+            height: 39px;
+            -webkit-border-radius: 0px 4px 4px 0px/5px 5px 4px 4px;
+            -moz-border-radius: 0px 4px 4px 0px/0px 0px 4px 4px;
+            border-radius: 0px 4px 4px 0px/5px 5px 4px 4px;
+            background-color: #fff;
+            -webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, .09);
+            -moz-box-shadow: 1px 2px 5px rgba(0, 0, 0, .09);
+            box-shadow: 1px 2px 5px rgba(0, 0, 0, .09);
+            border: solid 1px #cbc9c9;
+            margin-left: -5px;
+            margin-top: 13px;
+            padding-left: 10px;
+        }
+
+    </style>
 </head>
 <body>
-<h1>Register page</h1>
 <div class="testbox">
     <h1>Registration</h1>
 
     <form action="/connect" method="post">
         <hr>
-        <div class="accounttype">
-            <input type="radio" value="None" id="radioOne" name="account" checked/>
-            <label for="radioOne" class="radio" chec>Personal</label>
-            <input type="radio" value="None" id="radioTwo" name="account"/>
-            <label for="radioTwo" class="radio">Company</label>
-        </div>
+        <!--        <div class="accounttype">-->
+        <!--            <input type="radio" value="None" id="radioOne" name="account" checked/>-->
+        <!--            <label for="radioOne" class="radio">Personal</label>-->
+        <!--            <input type="radio" value="None" id="radioTwo" name="account"/>-->
+        <!--            <label for="radioTwo" class="radio">Company</label>-->
+        <!--        </div>-->
+        <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry
+        </p>
         <hr>
-        <label id="icon" for="ssid"><i class="icon-envelope "></i></label>
-        <select name="ssid" required>
-            <option selected disabled>Choose your SSID</option>
+        <label id="icon"><i class="icon-envelope "><span class="fas fa-wifi "></span></i></label>
+        <select name="ssid" class="dropdown" required="required">
+            <option selected disabled value="">Choose your SSID</option>
             {% for each in dropdown_list %}
             <option value="{{each}}">{{each}}</option>
             {% endfor %}
-        </select><br>
-        <!--        <input type="text" name="ssid" id="ssid" placeholder="SSID" required/>-->
-        <label id="icon" for="ssidpsk"><i class="icon-user"></i></label>
-        <input type="password" name="ssidpsk" id="ssidpsk" placeholder="SSID Password" required/>
-        <label id="icon" for="owner"><i class="icon-shield"></i></label>
+        </select>
+        <label id="icon" for="ssidpsk"><i class="icon-user"></i><span class="fas fa-key"></span></label>
+        <input type="password" name="ssidpsk" id="ssidpsk" placeholder="SSID Password" minlength="8" required/>
+        <label id="icon" for="owner"><i class="icon-shield"></i><span class="fas fa-user"></span></label>
         <input type="text" name="owner" id="owner" placeholder="Username" required/>
-        <label id="icon" for="cam_name"><i class="icon-shield"></i></label>
+        <label id="icon" for="cam_name"><i class="icon-shield"></i><span class="fas fa-camera"></span></label>
         <input type="text" name="cam_name" id="cam_name" placeholder="cam_name" required/>
 
         <p>By clicking Register, you agree on our <a href="#">terms and condition</a>.</p>
-        <input type="submit" value="Submit" class="button">Register
-        <!--        <a href="/connect" methods="post" type="submit" class="button">Register</a>-->
+
+        <input type="submit" value="Register" class="fsSubmitButton">
+        <!--        <a href="#" type="submit" class="button">Register</a>-->
     </form>
 </div>
+
 
 <!--<form action="/connect" method="post">-->
 <!--    ssid:<br>-->
