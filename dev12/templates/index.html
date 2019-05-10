@@ -17,14 +17,14 @@
             <label for="radioTwo" class="radio">Company</label>
         </div>
         <hr>
-        <label id="icon" for="name"><i class="icon-envelope "></i></label>
-<!--        <select name="ssid" required>-->
-<!--            <option selected disabled>Choose your SSID</option>-->
-<!--            {% for each in dropdown_list %}-->
-<!--            <option value="{{each}}">{{each}}</option>-->
-<!--            {% endfor %}-->
-<!--        </select><br>-->
-        <input type="text" name="ssid" id="ssid" placeholder="SSID" required/>
+        <label id="icon" for="ssid"><i class="icon-envelope "></i></label>
+        <select name="ssid" required>
+            <option selected disabled>Choose your SSID</option>
+            {% for each in dropdown_list %}
+            <option value="{{each}}">{{each}}</option>
+            {% endfor %}
+        </select><br>
+        <!--        <input type="text" name="ssid" id="ssid" placeholder="SSID" required/>-->
         <label id="icon" for="ssidpsk"><i class="icon-user"></i></label>
         <input type="password" name="ssidpsk" id="ssidpsk" placeholder="SSID Password" required/>
         <label id="icon" for="owner"><i class="icon-shield"></i></label>
@@ -34,7 +34,7 @@
 
         <p>By clicking Register, you agree on our <a href="#">terms and condition</a>.</p>
         <input type="submit" value="Submit" class="button">Register
-<!--        <a href="/connect" methods="post" type="submit" class="button">Register</a>-->
+        <!--        <a href="/connect" methods="post" type="submit" class="button">Register</a>-->
     </form>
 </div>
 
