@@ -520,7 +520,7 @@ def get_essid_list():
         proc_res = proc_str.split("\n")
         for x in proc_res:
             if 'SSID' in x:
-                temp = x[9:]
+                temp = x[x.find(":")+2:]
                 print(temp)
                 ssid_list.append(temp)
 
