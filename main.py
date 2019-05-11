@@ -49,15 +49,13 @@ class AzureCallerThread(threading.Thread):
         global image_path
         global list_buffer
         global debug_on_window
+        global project_dirpath
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
         x = 0
 
-        if debug_on_window:
-            unknown_filepath = "D:/home/pi/project/project_fr/image/unknown.jpg"
-        else:
-            unknown_filepath = "home/pi/project/project_fr/image/unknown.jpg"
+        unknown_filepath = project_dirpath + "/unknown.jpg"
 
         while self.running:
             if enable_flag and azure_flag:
@@ -74,8 +72,6 @@ class AzureCallerThread(threading.Thread):
 
                     azure_detect_list = CF.face.detect(image_path)
                     azure_unknown_list = azure_detect_list.copy()
-                    print("azure_unknow_list => ", azure_unknown_list)
-                    # print(azure_detect_list)
                 except Exception as e:
                     self.exception_handler(e)
 
@@ -168,14 +164,12 @@ class HaarcascadThread(threading.Thread):
         global azure_flag
         global enable_flag
         global image_path
+        global project_dirpath
         img_name = "capture"
         last = 0
         i = 0
 
-        if debug_on_window:
-            image_path = "D:/home/pi/project/project_fr/" + img_name + ".jpg"
-        else:
-            image_path = "/home/pi/project" + img_name + ".jpg"
+        image_path = project_dirpath + img_name + ".jpg"
 
         while self.running:
             if enable_flag:
@@ -306,7 +300,7 @@ class RepeatTimerThread(threading.Thread):
                 res_string = json.loads((res.read()).decode("utf-8"))
                 j_res = json.loads(res_string)
 
-                print(j_res)
+                # print(j_res)
                 status = j_res['status']
 
                 print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
@@ -350,8 +344,7 @@ class RepeatTimerThread(threading.Thread):
                         person_list = j_res["person_list"]
                         person_sn = j_res["person_sn"]
                         print("New person_sn:\t", person_sn)
-                        print("New person_list:\t")
-                        print(type(person_list))
+                        print("New person_list:\t" + str(len(person_list)) + " person")
                         update_person_list()
 
                     update_config()
@@ -386,13 +379,11 @@ def update_config():
     global group_id
     global person_list
     global person_sn
+    global project_dirpath
 
     global debug_on_window
 
-    if debug_on_window:
-        filename = "D:/home/pi/project/project_fr/config.json"  # windows
-    else:
-        filename = "/home/pi/project/config.json"  # pi
+    filename = project_dirpath + "/config.json"  # windows
 
     mac = get_mac()
 
@@ -419,13 +410,11 @@ def load_config():
     global key
     global group_id
     global person_sn
+    global project_dirpath
 
     global debug_on_window
 
-    if debug_on_window:
-        filename = "D:/home/pi/project/project_fr/config.json"  # windows
-    else:
-        filename = "/home/pi/project/config.json"  # pi
+    filename = project_dirpath + "/config.json"  # windows
 
     mac = get_mac()
     print("mac => ", mac)
@@ -479,11 +468,9 @@ def load_config():
 
 def load_person_list():
     global person_list
+    global project_dirpath
 
-    if debug_on_window:
-        person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
-    else:
-        person_list_filepath = "/home/pi/project/person_list.json"  # pi
+    person_list_filepath = project_dirpath + "/person_list.json"  # windows
 
     if os.path.exists(person_list_filepath):
         with open(person_list_filepath) as data_file:
@@ -493,12 +480,10 @@ def load_person_list():
 
 def update_person_list():
     global person_list
+    global project_dirpath
     # global group_id
 
-    if debug_on_window:
-        person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
-    else:
-        person_list_filepath = "/home/pi/project/person_list.json"  # pi
+    person_list_filepath = project_dirpath + "/person_list.json"  # windows
 
     # server_person_url = "http://13.76.191.11:8080/code/index.php/api/all_person/?cam_id=0x1e9cafa9b4&group_id=" + group_id
 
@@ -604,11 +589,9 @@ def check_internet():
 
 def set_new_ssid(new_ssid, new_password):
     global debug_on_window
+    global project_dirpath
 
-    if debug_on_window:
-        filepath = "D:/home/pi/project/project_fr/wpa_supplicant.conf"
-    else:
-        filepath = "/etc/wpa_supplicant/wpa_supplicant.conf"
+    filepath = project_dirpath + "/wpa_supplicant.conf"
 
     with open(filepath, 'r') as f:
         in_file = f.read()
@@ -671,17 +654,18 @@ def reset_device():
     print(">>> RESET DEVIEC <<<")
 
     global debug_on_window
+    global project_dirpath
 
     if debug_on_window:
         print("remove config.json, person_list.json and restart program!!!")
-        os.remove('D:/home/pi/project/project_fr/config.json')
-        os.remove('D:/home/pi/project/project_fr/person_list.json')
+        os.remove(project_dirpath + "/config.json")
+        os.remove(project_dirpath + "/person_list.json")
         exit()
     else:
         set_new_ssid('00000000', '00000000')
-        os.system('rm /home/pi/project/config.json')
-        os.system('rm /home/pi/project/person_list.json')
-        os.system('reboot')
+        os.system("rm " + project_dirpath + "/config.json")
+        os.system("rm " + project_dirpath + "/person_list.json")
+        os.system("reboot")
 
 
 def get_mac(interface='wlan0'):
@@ -726,6 +710,8 @@ image_path = None
 
 # debug_var
 
+project_dirpath = os.getcwd() + "\\"
+print("project_dirpath => ", project_dirpath)
 debug_on_window = on_windows()
 debug_flag = False
 
