@@ -6,6 +6,6 @@ fa = FontAwesome(app)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('register.html')
 
 app.run(host='127.0.0.1', port=8080)

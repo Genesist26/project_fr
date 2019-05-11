@@ -48,7 +48,7 @@ def browser():
 
     @app.route('/')
     def index():
-        return render_template('index.html')
+        return render_template('register.html')
 
     def gen():
         while True:

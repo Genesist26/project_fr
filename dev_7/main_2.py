@@ -55,7 +55,7 @@ def browser():
 
     @app.route('/')
     def index():
-        return render_template('index.html')
+        return render_template('register.html')
 
     @app.route('/video_feed')
     def video_feed():

@@ -63,7 +63,13 @@ class AzureCallerThread(threading.Thread):
 
                 # api
                 try:
+                    in_frame = cv2.imread(image_path)
+
                     azure_detect_list = CF.face.detect(image_path)
+                    # azure_detect_list = CF.face.detect("D:/home/pi/project/project_fr/image/test2.jpg")
+
+                    azure_unknown_list = azure_detect_list.copy()
+                    print("azure_unknow_list => ", azure_unknown_list)
                     # print(azure_detect_list)
                 except Exception as e:
                     self.exception_handler(e)
@@ -77,6 +83,7 @@ class AzureCallerThread(threading.Thread):
                 if azure_detect_number:
                     try:
                         azure_identified_list = CF.face.identify(face_ids, group_id)
+
                     except Exception as e:
                         self.exception_handler(e)
 
@@ -94,16 +101,20 @@ class AzureCallerThread(threading.Thread):
                             candidate_personId = candidate[0]['personId']
                             candidate_confidence = candidate[0]['confidence']
 
+                            azure_unknown_list = [d for d in azure_unknown_list if
+                                                  d['faceId'] != azure_identified_list[i]['faceId']]
+
+                            azure_known_number -= 1
+
                             for person in person_list:
-                                if candidate_personId in person['personId']:
+                                if candidate_personId in person['person_id']:
                                     known_counter = known_counter + 1
-                                    azure_known_number -= 1
 
                                     name = person['name']
 
                                     di = {
                                         "name": name,
-                                        "confidense": candidate_confidence,
+                                        "confidence": candidate_confidence,
                                         "timestamp": timestamp
                                     }
 
@@ -114,12 +125,27 @@ class AzureCallerThread(threading.Thread):
 
                     if azure_known_number:
                         print("\tazure_unknown_person: " + str(azure_known_number))
+                        print(azure_unknown_list)
+                        unknown_face_rectangle = [d['faceRectangle'] for d in azure_unknown_list]
+
+                        for face in unknown_face_rectangle:
+                            left1 = face['left']
+                            top1 = face['top']
+                            bottom1 = left1 + face['height']
+                            right1 = top1 + face['width']
+                            cv2.rectangle(in_frame, (left1, top1), (bottom1, right1), (0, 0, 255), 2)
+
+                        cv2.imwrite("D:/home/pi/project/project_fr/image/unknown.jpg", in_frame)
+                        print("timestamp => ", timestamp)
+                        print("unknown_face_rectangle => ", unknown_face_rectangle)
 
     def stop(self):
         self.running = False
 
     def exception_handler(self, e):
         e_msg = str(e)
+        status_code = e_msg[e_msg.find(":") + 1:]
+        print("status_code =>\t", status_code)
         delay_str = re.search(r'Try again in(.*?)seconds', e_msg).group(1)
         delay = int(delay_str)
 
@@ -171,7 +197,7 @@ class HaarcascadThread(threading.Thread):
                     last = current
                     i = i + 1
 
-                # time.sleep(1)
+                # time.sleep(3)
 
     def stop(self):
         self.running = False
@@ -197,7 +223,7 @@ class FlaskServerThread(threading.Thread):
         @app.route('/')
         def index():
             dropdown_list = get_essid_list()
-            return render_template('index.html', dropdown_list=dropdown_list)
+            return render_template('register.html', dropdown_list=dropdown_list)
 
         @app.route('/connect', methods=['POST'])
         def connect():
@@ -229,7 +255,8 @@ class FlaskServerThread(threading.Thread):
                 shutdown_hook()
 
             reboot_flag = True
-            return Response(msg, mimetype='text/plain')
+            # return Response(msg, mimetype='text/plain')
+            return render_template('message.html')
 
         app.run(host=ip_addr, debug=False)
 
@@ -250,19 +277,16 @@ class RepeatTimerThread(threading.Thread):
         global cam_name
         global owner
         global key_sn
-        global group_sn
         global key
-        global group_name
         global group_id
         global person_list
+        global person_sn
         global list_buffer
 
         i = 0
 
         if key_sn == 'none':
-            url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/reg?cam_id=" + cam_id + "&owner=" + owner
-            print("/reg [" + url_str + "]")
-
+            print("/reg --->>")
             di = {"cam_id": cam_id, "owner": owner, 'cam_name': cam_name}
 
             data_json = json.dumps(di)
@@ -270,25 +294,25 @@ class RepeatTimerThread(threading.Thread):
             requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg",
                           data=payload)
         while self.running:
-
             try:
-                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_sn=" + group_sn
-
+                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + person_sn
+                print("/status --->>")
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
                 j_res = json.loads(res_string)
+
+                print(j_res)
                 status = j_res['status']
 
                 print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
                 i = i + 1
-                update_flag = False
-                if "streaming" in j_res:
-                    streaming = j_res['streaming']
-                    print("implement streaming function")
-                    if streaming:
-                        print("stream streaming")
-                    else:
-                        print("stop streaming")
+                # if "streaming" in j_res:
+                #     streaming = j_res['streaming']
+                #     print("implement streaming function")
+                #     if streaming:
+                #         print("stream streaming")
+                #     else:
+                #         print("stop streaming")
 
                 if status == "deactivate":
                     enable_flag = False
@@ -304,9 +328,8 @@ class RepeatTimerThread(threading.Thread):
                     else:
                         enable_flag = False
 
-                if "key_sn" in j_res or "group_sn" in j_res:
+                if "key_sn" in j_res or "group_id" in j_res or "person_sn" in j_res:
                     enable_flag = False
-                    update_flag = True
 
                     if "key_sn" in j_res:  # new key available
                         key_sn = j_res["key_sn"]
@@ -314,19 +337,19 @@ class RepeatTimerThread(threading.Thread):
                         print("New key_sn:\t", key_sn)
                         print("New key:\t", key)
 
-                    if "group_sn" in j_res:  # new config available
-                        group_sn = j_res["group_sn"]
-                        print("New group_sn:\t", group_sn)
+                    if "group_id" in j_res:  # new config available
+                        group_id = j_res["group_id"]
+                        print("New group_id:\t", group_id)
 
-                        if "group_name" in j_res:  # handle new group
-                            group_name = j_res['group_name']
-                            group_id = j_res['group_id']
-                            print("New group_name:\t", group_name)
-                            print("New group_id:\t", group_id)
+                    if "person_sn" in j_res:  # new config available
+                        person_list = j_res["person_list"]
+                        person_sn = j_res["person_sn"]
+                        print("New person_sn:\t", person_sn)
+                        print("New person_list:\t")
+                        print(type(person_list))
+                        update_person_list()
 
-                if update_flag:
                     update_config()
-                    update_person_list()  # debug only (wait for server side ready)
 
             except:
                 enable_flag = False
@@ -354,11 +377,10 @@ def update_config():
     global cam_name
     global owner
     global key_sn
-    global group_sn
     global key
-    global group_name
     global group_id
     global person_list
+    global person_sn
 
     global debug_on_window
 
@@ -369,24 +391,19 @@ def update_config():
 
     mac = get_mac()
 
-    msg = {
+    config_template = {
         "cam_id": mac,
         "cam_name": cam_name,
         "owner": owner,
         "key_sn": key_sn,
-        "group_sn": group_sn,
         "key": key,
-        "group_name": group_name,
         "group_id": group_id,
+        "person_sn": person_sn,
     }
 
     with open(filename, 'w') as fp:
-        json.dump(msg, fp)
+        json.dump(config_template, fp)
         fp.close()
-
-    print("------------Updating config:\tSTART------------")
-    pp_json_string(msg)
-    print("------------Updating config:\tFINISH------------")
 
 
 def load_config():
@@ -394,10 +411,9 @@ def load_config():
     global cam_name
     global owner
     global key_sn
-    global group_sn
     global key
-    global group_name
     global group_id
+    global person_sn
 
     global debug_on_window
 
@@ -414,10 +430,9 @@ def load_config():
         "cam_name": "none",
         "owner": "none",
         "key_sn": "none",
-        "group_sn": "none",
         "key": "none",
-        "group_name": "none",
         "group_id": "none",
+        "person_sn": "none",
     }
 
     if not os.path.exists(filename):
@@ -440,24 +455,20 @@ def load_config():
             cam_name = data["cam_name"]
             owner = data["owner"]
             key_sn = data["key_sn"]
-            group_sn = data["group_sn"]
             key = data["key"]
-            group_name = data["group_name"]
             group_id = data["group_id"]
+            person_sn = data["person_sn"]
 
         config_template = {
             "cam_id": mac,
             "cam_name": cam_name,
             "owner": owner,
             "key_sn": key_sn,
-            "group_sn": group_sn,
             "key": key,
-            "group_name": group_name,
             "group_id": group_id,
-
+            "person_sn": person_sn,
         }
 
-    # pretty print json string
     pp_json_string(config_template)
 
 
@@ -477,20 +488,18 @@ def load_person_list():
 
 def update_person_list():
     global person_list
-    global group_sn
+    # global group_id
 
     if debug_on_window:
         person_list_filepath = "D:/home/pi/project/project_fr/person_list.json"  # windows
     else:
         person_list_filepath = "/home/pi/project/person_list.json"  # pi
 
-    server_person_url = "http://13.76.191.11:8080/code/index.php/api/all_person/?cam_id=0x1e9cafa9b4&group_sn=" + group_sn + ""
+    # server_person_url = "http://13.76.191.11:8080/code/index.php/api/all_person/?cam_id=0x1e9cafa9b4&group_id=" + group_id
 
-    res = urlopen(server_person_url)
-    res_string = json.loads((res.read()).decode("utf-8"))
-    person_list = json.loads(res_string)
-
-    print("update person list => ", person_list)
+    # res = urlopen(server_person_url)
+    # res_string = json.loads((res.read()).decode("utf-8"))
+    # person_list = json.loads(res_string)
 
     write_json_file(person_list, person_list_filepath)
 
@@ -520,8 +529,7 @@ def get_essid_list():
         proc_res = proc_str.split("\n")
         for x in proc_res:
             if 'SSID' in x:
-                temp = x[x.find(":")+2:]
-                print(temp)
+                temp = x[x.find(":") + 2:]
                 ssid_list.append(temp)
 
     else:
@@ -534,6 +542,8 @@ def get_essid_list():
         for x in proc_res:
             temp = x[x.find("ESSID") + 7:-1]
             ssid_list.append(temp)
+
+    ssid_list.sort()
 
     return list(set(ssid_list))
 
@@ -679,7 +689,6 @@ def get_mac(interface='wlan0'):
         try:
             mac = open('/sys/class/net/%s/address' % interface).read()
             mac = '0x' + ((mac.replace(':', '')).replace("\n", ''))
-
         except:
             mac_hex_str = "00:00:00:00:00:00"
 
@@ -704,11 +713,10 @@ cam_id = None
 cam_name = None
 owner = None
 key_sn = None
-group_sn = None
 key = None
-group_name = None
 group_id = None
 person_list = []
+person_sn = None
 image_path = None
 
 # debug_var
@@ -732,14 +740,13 @@ else:
     face_cascade = cv2.CascadeClassifier('/home/pi/opencv-3.4.3/data/haarcascades/haarcascade_frontalface_default.xml')
 
 lock = threading.Lock()
-
 enable_flag = False
 azure_flag = False
 frame_buffer = None
 list_buffer = []
 reboot_flag = False
 
-### initial funtion
+# initial funtion
 load_config()
 load_person_list()
 
