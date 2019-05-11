@@ -91,15 +91,15 @@ class AzureCallerThread(threading.Thread):
                     azure_known_number = azure_detect_number
                     known_counter = 0
 
-                    currentDT = datetime.datetime.now()
-                    timestamp = currentDT.strftime("%Y-%m-%d %H:%M:%S")
+                    current_dt = datetime.datetime.now()
+                    timestamp = current_dt.strftime("%Y-%m-%d %H:%M:%S")
 
                     print("\tazure_known_person:")
 
                     for i in range(azure_detect_number):
                         candidate = azure_identified_list[i]['candidates']
                         if candidate:  # check empty list
-                            candidate_personId = candidate[0]['personId']
+                            candidate_person_id = candidate[0]['personId']
                             candidate_confidence = candidate[0]['confidence']
 
                             azure_unknown_list = [d for d in azure_unknown_list if
@@ -108,10 +108,10 @@ class AzureCallerThread(threading.Thread):
                             azure_known_number -= 1
 
                             for person in person_list:
-                                if candidate_personId in person['person_id']:
+                                if candidate_person_id in person['person_id']:
                                     known_counter = known_counter + 1
 
-                                    name = person['name']
+                                    name = person['person_name']
 
                                     di = {
                                         "name": name,
@@ -121,7 +121,7 @@ class AzureCallerThread(threading.Thread):
 
                                     list_buffer.append(di)
 
-                                    print("\t\t" + str(known_counter) + ": [" + person['name'] + "," + str(
+                                    print("\t\t" + str(known_counter) + ": [" + name + "," + str(
                                         candidate_confidence) + "]")
 
                     if azure_known_number:
@@ -130,15 +130,13 @@ class AzureCallerThread(threading.Thread):
                         unknown_face_rectangle = [d['faceRectangle'] for d in azure_unknown_list]
 
                         for face in unknown_face_rectangle:
-                            left1 = face['left']
-                            top1 = face['top']
-                            bottom1 = left1 + face['height']
-                            right1 = top1 + face['width']
-                            cv2.rectangle(in_frame, (left1, top1), (bottom1, right1), (0, 0, 255), 2)
+                            left = face['left']
+                            top = face['top']
+                            bottom = left + face['height']
+                            right = top + face['width']
+                            cv2.rectangle(in_frame, (left, top), (bottom, right), (0, 0, 255), 2)
 
                         cv2.imwrite(unknown_filepath, in_frame)
-                        print("timestamp => ", timestamp)
-                        print("unknown_face_rectangle => ", unknown_face_rectangle)
 
     def stop(self):
         self.running = False
