@@ -173,7 +173,7 @@ class HaarcascadThread(threading.Thread):
         i = 0
 
         if debug_on_window:
-            image_path = "D:/home/pi/project/project_fr/image/" + img_name + ".jpg"
+            image_path = "D:/home/pi/project/project_fr/" + img_name + ".jpg"
         else:
             image_path = "/home/pi/project" + img_name + ".jpg"
 
