@@ -48,10 +48,17 @@ class AzureCallerThread(threading.Thread):
         global person_list
         global image_path
         global list_buffer
+        global debug_on_window
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
         x = 0
+
+        if debug_on_window:
+            unknown_filepath = "D:/home/pi/project/project_fr/image/unknown.jpg"
+        else:
+            unknown_filepath = "home/pi/project/project_fr/image/unknown.jpg"
+
         while self.running:
             if enable_flag and azure_flag:
                 lock.acquire()
@@ -66,8 +73,6 @@ class AzureCallerThread(threading.Thread):
                     in_frame = cv2.imread(image_path)
 
                     azure_detect_list = CF.face.detect(image_path)
-                    # azure_detect_list = CF.face.detect("D:/home/pi/project/project_fr/image/test2.jpg")
-
                     azure_unknown_list = azure_detect_list.copy()
                     print("azure_unknow_list => ", azure_unknown_list)
                     # print(azure_detect_list)
@@ -135,7 +140,7 @@ class AzureCallerThread(threading.Thread):
                             right1 = top1 + face['width']
                             cv2.rectangle(in_frame, (left1, top1), (bottom1, right1), (0, 0, 255), 2)
 
-                        cv2.imwrite("D:/home/pi/project/project_fr/image/unknown.jpg", in_frame)
+                        cv2.imwrite(unknown_filepath, in_frame)
                         print("timestamp => ", timestamp)
                         print("unknown_face_rectangle => ", unknown_face_rectangle)
 
