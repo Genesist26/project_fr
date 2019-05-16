@@ -292,7 +292,8 @@ class RepeatTimerThread(threading.Thread):
                           data=payload)
         while self.running:
             try:
-                url_str = "http://" + server_ip + ":" + server_port + "/code2/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + str(person_sn)
+                url_str = "http://" + server_ip + ":" + server_port + "/code2/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + str(
+                    person_sn)
                 print("/status --->>")
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
@@ -589,7 +590,10 @@ def set_new_ssid(new_ssid, new_password):
     global debug_on_window
     global project_dirpath
 
-    filepath = project_dirpath + "/wpa_supplicant.conf"
+    if debug_on_window:
+        filepath = project_dirpath + "/wpa_supplicant.conf"
+    else:
+        filepath = "/etc/wpa_supplicant/wpa_supplicant.conf"
 
     with open(filepath, 'r') as f:
         in_file = f.read()
@@ -713,7 +717,7 @@ debug_on_window = on_windows()
 if debug_on_window:
     project_dirpath = os.getcwd() + "\\"
 else:
-    project_dirpath = os.path.realpath(__file__) + "//"
+    project_dirpath = os.path.dirname(__file__)
 
 print("project_dirpath => ", project_dirpath)
 debug_flag = False
