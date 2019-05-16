@@ -708,9 +708,14 @@ image_path = None
 
 # debug_var
 
-project_dirpath = os.getcwd() + "//"
-print("project_dirpath => ", project_dirpath)
 debug_on_window = on_windows()
+
+if debug_on_window:
+    project_dirpath = os.getcwd() + "\\"
+else:
+    project_dirpath = os.path.realpath(__file__) + "//"
+
+print("project_dirpath => ", project_dirpath)
 debug_flag = False
 
 if not debug_on_window:
