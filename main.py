@@ -288,11 +288,11 @@ class RepeatTimerThread(threading.Thread):
 
             data_json = json.dumps(di)
             payload = {'json_payload': data_json}
-            requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/reg",
+            requests.post("http://" + server_ip + ":" + server_port + "/code2/api/reg",
                           data=payload)
         while self.running:
             try:
-                url_str = "http://" + server_ip + ":" + server_port + "/code/index.php/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + person_sn
+                url_str = "http://" + server_ip + ":" + server_port + "/code2/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + str(person_sn)
                 print("/status --->>")
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
@@ -355,7 +355,7 @@ class RepeatTimerThread(threading.Thread):
             if len(list_buffer):
                 data_json = json.dumps(list_buffer)
                 payload = {'json_payload': data_json}
-                requests.post("http://" + server_ip + ":" + server_port + "/code/index.php/api/found", data=payload)
+                requests.post("http://" + server_ip + ":" + server_port + "/code2/api/found", data=payload)
 
                 list_buffer = []
 
@@ -483,7 +483,7 @@ def update_person_list():
 
     person_list_filepath = project_dirpath + "/person_list.json"  # windows
 
-    # server_person_url = "http://13.76.191.11:8080/code/index.php/api/all_person/?cam_id=0x1e9cafa9b4&group_id=" + group_id
+    # server_person_url = "http://13.76.191.11:8080/code2/api/all_person/?cam_id=0x1e9cafa9b4&group_id=" + group_id
 
     # res = urlopen(server_person_url)
     # res_string = json.loads((res.read()).decode("utf-8"))
@@ -708,7 +708,7 @@ image_path = None
 
 # debug_var
 
-project_dirpath = os.getcwd() + "\\"
+project_dirpath = os.getcwd() + "//"
 print("project_dirpath => ", project_dirpath)
 debug_on_window = on_windows()
 debug_flag = False
