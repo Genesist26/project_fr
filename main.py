@@ -50,6 +50,7 @@ class AzureCallerThread(threading.Thread):
         global list_buffer
         global debug_on_window
         global project_dirpath
+        global group_id
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
@@ -163,6 +164,8 @@ class HaarcascadThread(threading.Thread):
         global enable_flag
         global image_path
         global project_dirpath
+        global group_id
+
         img_name = "capture"
         last = 0
         i = 0
@@ -170,7 +173,7 @@ class HaarcascadThread(threading.Thread):
         image_path = project_dirpath + img_name + ".jpg"
 
         while self.running:
-            if enable_flag:
+            if enable_flag and group_id != 'none':
                 frame = frame_buffer
 
                 faces = face_cascade.detectMultiScale(
@@ -280,6 +283,7 @@ class RepeatTimerThread(threading.Thread):
         global person_sn
         global list_buffer
         global stream_flag
+        global location
 
         i = 0
 
@@ -294,23 +298,25 @@ class RepeatTimerThread(threading.Thread):
         while self.running:
             try:
                 url_str = "http://" + server_ip + ":" + server_port + "/code2/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + str(
-                    person_sn)
+                    person_sn) + "&location=" + location
                 print("/status --->>", end='')
+
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
                 j_res = json.loads(res_string)
 
                 print(j_res)
+
                 status = j_res['status']
+                stream = j_res['stream']
+
+                if stream == 'stream':
+                    stream_flag = True
+                    print("stream_flag = True")
+                elif stream == 'none':
+                    stream_flag = False
 
                 print(":\t" + status)
-                if "stream" in j_res:
-                    stream = j_res['stream']
-                    print("implement streaming function")
-                    if stream == 'stream':
-                        stream_flag = True
-                    else:
-                        stream_flag = False
 
                 if status == "deactivate":
                     enable_flag = False
@@ -321,13 +327,15 @@ class RepeatTimerThread(threading.Thread):
                     enable_flag = False
 
                 elif status == 'enable':
-                    if group_id != 'none':
-                        enable_flag = True
-                    else:
-                        enable_flag = False
+                    enable_flag = True
 
-                if "key_sn" in j_res or "group_id" in j_res or "person_sn" in j_res:
-                    enable_flag = False
+                    # if group_id != 'none':
+                    #     enable_flag = True
+                    # else:
+                    #     enable_flag = False
+
+                if "key_sn" in j_res or "group_id" in j_res or "person_sn" in j_res or "location" in j_res:
+                    # enable_flag = False
 
                     if "key_sn" in j_res:  # new key available
                         key_sn = j_res["key_sn"]
@@ -345,6 +353,9 @@ class RepeatTimerThread(threading.Thread):
                         print("New person_sn:\t", person_sn)
                         print("New person_list:\t" + str(len(person_list)) + " person")
                         update_person_list()
+
+                    if "location" in j_res:
+                        location = j_res['location']
 
                     update_config()
 
@@ -391,7 +402,7 @@ class UploadStreamThread(threading.Thread):
                     'file': (cam_id + '.jpg', open(image_path, 'rb'), '.jpg'),
                 }
                 # response = requests.post('http://localhost/code2/upload/stream', files=files)
-                response = requests.post("http://" + server_ip + ":" + server_port + "/code2/upload/stream",
+                response = requests.post("http://" + server_ip + ":" + server_port + "/code2/api/stream",
                                          files=files)
                 res = response.json()
                 size = res[0]['size']
@@ -408,7 +419,7 @@ def post_image(filepath):
         'file': ('0x1e9cafa9b4.jpg', open(filepath, 'rb'), '.jpg'),
     }
 
-    response = requests.post('http://localhost/code2/upload/stream', files=files)
+    response = requests.post('http://localhost/code2/api/stream', files=files)
     # response = requests.post('http://13.76.191.11:8080/code2/upload/stream', files=files)
     # print(response.json())
     # time.sleep(1)
@@ -426,6 +437,7 @@ def update_config():
     global person_list
     global person_sn
     global project_dirpath
+    global location
 
     global debug_on_window
 
@@ -441,6 +453,7 @@ def update_config():
         "key": key,
         "group_id": group_id,
         "person_sn": person_sn,
+        "location": location,
     }
 
     with open(filename, 'w') as fp:
@@ -457,6 +470,7 @@ def load_config():
     global group_id
     global person_sn
     global project_dirpath
+    global location
 
     global debug_on_window
 
@@ -473,6 +487,7 @@ def load_config():
         "key": "none",
         "group_id": "none",
         "person_sn": "none",
+        "location": "none",
     }
 
     if not os.path.exists(filename):
@@ -498,6 +513,7 @@ def load_config():
             key = data["key"]
             group_id = data["group_id"]
             person_sn = data["person_sn"]
+            location = data["location"]
 
         config_template = {
             "cam_id": mac,
@@ -507,6 +523,7 @@ def load_config():
             "key": key,
             "group_id": group_id,
             "person_sn": person_sn,
+            "location": location,
         }
 
     pp_json_string(config_template)
@@ -754,6 +771,7 @@ owner = None
 key_sn = None
 key = None
 group_id = None
+location = None
 person_list = []
 person_sn = None
 image_path = None
