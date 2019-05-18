@@ -279,6 +279,7 @@ class RepeatTimerThread(threading.Thread):
         global person_list
         global person_sn
         global list_buffer
+        global stream_flag
 
         i = 0
 
@@ -294,23 +295,22 @@ class RepeatTimerThread(threading.Thread):
             try:
                 url_str = "http://" + server_ip + ":" + server_port + "/code2/api/status?cam_id=" + cam_id + "&key_sn=" + key_sn + "&group_id=" + group_id + "&person_sn=" + str(
                     person_sn)
-                print("/status --->>")
+                print("/status --->>", end='')
                 res = urlopen(url_str)
                 res_string = json.loads((res.read()).decode("utf-8"))
                 j_res = json.loads(res_string)
 
-                # print(j_res)
+                print(j_res)
                 status = j_res['status']
 
-                print("RepeatTimerThread [" + str(i) + "]:\t" + status + "")
-                i = i + 1
-                # if "streaming" in j_res:
-                #     streaming = j_res['streaming']
-                #     print("implement streaming function")
-                #     if streaming:
-                #         print("stream streaming")
-                #     else:
-                #         print("stop streaming")
+                print(":\t" + status)
+                if "stream" in j_res:
+                    stream = j_res['stream']
+                    print("implement streaming function")
+                    if stream == 'stream':
+                        stream_flag = True
+                    else:
+                        stream_flag = False
 
                 if status == "deactivate":
                     enable_flag = False
@@ -365,6 +365,53 @@ class RepeatTimerThread(threading.Thread):
 
     def stop(self):
         self.running = False
+
+
+class UploadStreamThread(threading.Thread):
+    running = True
+
+    def run(self):
+        print("UploadStreamThread:\tSTART")
+        global stream_flag
+        global frame_buffer
+        global project_dirpath
+        global cam_id
+        global enable_flag
+        global server_ip
+        global server_port
+
+        image_path = project_dirpath + cam_id + ".jpg"
+
+        while self.running:
+            if stream_flag:
+                in_frame = frame_buffer
+                cv2.imwrite(image_path, in_frame)
+
+                files = {
+                    'file': (cam_id + '.jpg', open(image_path, 'rb'), '.jpg'),
+                }
+                # response = requests.post('http://localhost/code2/upload/stream', files=files)
+                response = requests.post("http://" + server_ip + ":" + server_port + "/code2/upload/stream",
+                                         files=files)
+                res = response.json()
+                size = res[0]['size']
+                print("/upload --->>:\t" + str(round(size / 1024, 2)) + " KB")
+            else:
+                time.sleep(1)
+
+    def stop(self):
+        self.running = False
+
+
+def post_image(filepath):
+    files = {
+        'file': ('0x1e9cafa9b4.jpg', open(filepath, 'rb'), '.jpg'),
+    }
+
+    response = requests.post('http://localhost/code2/upload/stream', files=files)
+    # response = requests.post('http://13.76.191.11:8080/code2/upload/stream', files=files)
+    # print(response.json())
+    # time.sleep(1)
 
 
 def update_config():
@@ -650,6 +697,7 @@ def boot_mode(mode):
         camera_reader_thread.start()
         haarcascad_thread.start()
         azure_caller_thread.start()
+        upload_stream_thread.start()
 
 
 def reset_device():
@@ -709,6 +757,7 @@ group_id = None
 person_list = []
 person_sn = None
 image_path = None
+stream_flag = False
 
 # debug_var
 
@@ -753,6 +802,7 @@ azure_caller_thread = AzureCallerThread()
 haarcascad_thread = HaarcascadThread()
 flask_server_thread = FlaskServerThread()
 repeat_timer_thread = RepeatTimerThread()
+upload_stream_thread = UploadStreamThread()
 
 if check_internet():
     if owner == 'none':
