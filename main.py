@@ -383,7 +383,7 @@ class UploadStreamThread(threading.Thread):
         image_path = project_dirpath + cam_id + ".jpg"
 
         while self.running:
-            if stream_flag:
+            if enable_flag and stream_flag:
                 in_frame = frame_buffer
                 cv2.imwrite(image_path, in_frame)
 
