@@ -178,7 +178,7 @@ class HaarcascadThread(threading.Thread):
         i = 0
         last_call = 0
 
-        azure_threshold_time = 10
+        azure_threshold_time = 60
         t_start = int(round(time.time()))
 
         image_path = project_dirpath + img_name + ".jpg"
