@@ -51,6 +51,8 @@ class AzureCallerThread(threading.Thread):
         global debug_on_window
         global project_dirpath
         global group_id
+        global location
+        global cam_id
 
         CF.Key.set(key)
         CF.BaseUrl.set(self.BASE_URL)
@@ -117,7 +119,11 @@ class AzureCallerThread(threading.Thread):
                                     di = {
                                         "name": name,
                                         "confidence": candidate_confidence,
-                                        "timestamp": timestamp
+                                        "timestamp": timestamp,
+                                        "location": location,
+                                        "cam_id": cam_id,
+                                        "person_id": person['person_id'],
+                                        "group_id": group_id
                                     }
 
                                     list_buffer.append(di)
@@ -165,15 +171,20 @@ class HaarcascadThread(threading.Thread):
         global image_path
         global project_dirpath
         global group_id
+        global person_list
 
         img_name = "capture"
         last = 0
         i = 0
+        last_call = 0
+
+        azure_threshold_time = 10
+        t_start = int(round(time.time()))
 
         image_path = project_dirpath + img_name + ".jpg"
 
         while self.running:
-            if enable_flag and group_id != 'none':
+            if enable_flag and group_id != 'none' and len(person_list) > 0:
                 frame = frame_buffer
 
                 faces = face_cascade.detectMultiScale(
@@ -188,10 +199,23 @@ class HaarcascadThread(threading.Thread):
                 if current == 0:
                     last = current
                 elif current != last:
-                    cv2.imwrite(image_path, frame)
-                    lock.acquire()
-                    azure_flag = True
-                    lock.release()
+                    t_stop = int(round(time.time()))
+
+                    if current != last_call:
+                        t_start = int(round(time.time()))
+                        cv2.imwrite(image_path, frame)
+                        last_call = current
+                        lock.acquire()
+                        azure_flag = True
+                        lock.release()
+                    else:
+                        if t_stop - t_start >= azure_threshold_time:
+                            t_start = int(round(time.time()))
+                            cv2.imwrite(image_path, frame)
+                            last_call = current
+                            lock.acquire()
+                            azure_flag = True
+                            lock.release()
 
                     print("HaarcascadThread found[" + str(i) + ", " + str(current) + "]")
                     last = current
@@ -285,6 +309,8 @@ class RepeatTimerThread(threading.Thread):
         global stream_flag
         global location
 
+        status = 'disable'
+
         i = 0
 
         if key_sn == 'none':
@@ -305,9 +331,14 @@ class RepeatTimerThread(threading.Thread):
                 res_string = json.loads((res.read()).decode("utf-8"))
                 j_res = json.loads(res_string)
 
-                print(j_res)
+                # print(j_res)
 
-                status = j_res['status']
+                if j_res['status'] != status:
+                    status = j_res['status']
+                    print(":\t" + status)
+                else:
+                    print()
+
                 stream = j_res['stream']
 
                 if stream == 'stream':
@@ -315,8 +346,6 @@ class RepeatTimerThread(threading.Thread):
                     print("stream_flag = True")
                 elif stream == 'none':
                     stream_flag = False
-
-                print(":\t" + status)
 
                 if status == "deactivate":
                     enable_flag = False
@@ -544,7 +573,6 @@ def load_person_list():
 def update_person_list():
     global person_list
     global project_dirpath
-    # global group_id
 
     person_list_filepath = project_dirpath + "/person_list.json"  # windows
 
