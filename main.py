@@ -178,7 +178,7 @@ class HaarcascadThread(threading.Thread):
         i = 0
         last_call = 0
 
-        azure_threshold_time = 60
+        azure_threshold_time = 10
         t_start = int(round(time.time()))
 
         image_path = project_dirpath + img_name + ".jpg"
@@ -339,20 +339,22 @@ class RepeatTimerThread(threading.Thread):
                 else:
                     print()
 
-                stream = j_res['stream']
-
-                if stream == 'stream':
-                    stream_flag = True
-                    print("stream_flag = True")
-                elif stream == 'none':
-                    stream_flag = False
-
                 if status == "deactivate":
                     enable_flag = False
-                    if key_sn != 'none':
-                        reset_device()
+                    # if key_sn != 'none':
+                    #     reset_device()
+                    reset_device()
 
-                elif status == 'disable':
+                if j_res['stream'] != status:
+                    stream = j_res['stream']
+                    if stream == 'stream':
+                        stream_flag = True
+                        print("stream_flag = True")
+
+                    elif stream == 'none':
+                        stream_flag = False
+
+                if status == 'disable':
                     enable_flag = False
 
                 elif status == 'enable':
@@ -435,7 +437,7 @@ class UploadStreamThread(threading.Thread):
                                          files=files)
                 res = response.json()
                 size = res[0]['size']
-                print("/upload --->>:\t" + str(round(size / 1024, 2)) + " KB")
+                # print("/upload --->>:\t" + str(round(size / 1024, 2)) + " KB")
             else:
                 time.sleep(1)
 
